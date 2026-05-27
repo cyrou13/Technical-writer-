@@ -121,7 +121,20 @@ description: |
   avec un IdP externe configuré.
 verification: Test                # Test | Inspection | Analysis | Demo
 priority: Must                    # Must | Should | Could
+
+# OPTIONAL — populated by the mitigation-auditor agent (skill mitigation-audit)
+implementation_status: unknown    # absent | partial | implemented | unknown
+implementation_evidence: []       # list of {path: src/foo.py:42, note: "..."}
+implementation_gap: null          # string describing what's missing (partial), or null
 ```
+
+The three `implementation_*` fields are additive and optional. They are
+written by the `mitigation-auditor` agent (skill `mitigation-audit`)
+when an audit verdict is produced. Items predating the audit pipeline
+omit them entirely — that is valid; the audit treats them as
+`unknown`. See the `mitigation-audit` skill for verdict semantics and
+the rule for flipping a risk's `residual_acceptable` based on the
+verdict of its linked SRS controls.
 
 ## SDS — frontmatter spécifique
 

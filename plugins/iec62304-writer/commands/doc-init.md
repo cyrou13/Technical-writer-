@@ -188,6 +188,14 @@ else
   SKIPPED+=("tools/build_use_export.py (existe — utilise --update pour remplacer)")
 fi
 
+# audit_mitigations.py — overwrite uniquement si --update
+if [ ! -f tools/audit_mitigations.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/audit_mitigations.py" tools/audit_mitigations.py
+  CREATED+=("tools/audit_mitigations.py")
+else
+  SKIPPED+=("tools/audit_mitigations.py (existe — utilise --update pour remplacer)")
+fi
+
 # docs/static/ — boilerplates IEC 62366-1 utilisés par /doc-use-export
 mkdir -p docs/static
 for f in sample-size-justification.md clinical-evidence-questionnaire.md iec62366-annex1-checklist.csv; do

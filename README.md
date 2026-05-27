@@ -103,6 +103,7 @@ selon ton setup.
 | `risk-report-export` | Spec du livrable Risk Analysis Report ISO 14971 — chaîne causale §C.2, hiérarchie de contrôle §7.2, résiduel quantitatif §7.4, cascade §7.5 |
 | `production-risk-analysis` | Référence AAMI TIR57 + IEC 81001-5-1 §6.1 — risques de packaging/delivery/deployment/update (PRSK) |
 | `risk-xlsx-export` | Spec du livrable Excel 4-onglets matching le format Avicenna `annex1-RISK-TABLE.xlsx` (dépendance `openpyxl`) |
+| `mitigation-audit` | Convention d'audit code-vs-mitigation : pour chaque risque résiduel non-acceptable, déterminer `implementation_status ∈ {absent, partial, implemented}` des contrôles cités en lisant le code, annoter les SRS et autoriser le flip de `residual_acceptable` |
 | `sdd-export` | Spec du livrable Software Design Description (Avicenna `AV-DP-XXX-SDD`) |
 | `stp-export` | Spec du livrable Software Test Plan (Avicenna `AV-DP-XXX-STP`) |
 | `stdr-export` | Spec du livrable Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) avec ingestion `test-results.json` |
@@ -122,6 +123,7 @@ selon ton setup.
 | `usability-analyst` | Scan UI → `docs/items/USC/*.md` + `URSK/*.md` + SRS-VIEWER-* + TC E2E |
 | `production-risk-analyst` | Scan CI/CD + Docker + deploy → `docs/items/PRSK/*.md` + SRS-SIGNING/SBOM (AAMI TIR57) |
 | `items-refresher` | Remplit sémantiquement les `[TODO]` placeholders insérés par `/doc-refresh-items --apply`. Inférence pour RSK (initiating_causes, foreseeable_sequence, hierarchy, residual) depuis hazard + source. Projection CIA pour THR depuis STRIDE + impact. Ne touche jamais aux champs déjà remplis. |
+| `mitigation-auditor` | Audite code-vs-mitigation pour les risques résiduels non-acceptable. Lit le code pointé par chaque SRS de contrôle, juge `implementation_status` (absent/partial/implemented), annote les SRS (additif), recommande les flips `residual_acceptable: true` (jamais applique directement — l'orchestrateur le fait avec `--apply`). |
 
 ### Coverage-gap prompts skill
 
@@ -151,6 +153,7 @@ selon ton setup.
 | `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
 | `/doc-refresh-items [--apply] [--cat CAT] [--stdout] [--auto-fill]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders. Avec `--auto-fill`, enchaîne avec le sub-agent `items-refresher` qui remplit sémantiquement les `[TODO]` depuis hazard / STRIDE / source code. Items restent en `status: Draft` pour re-approbation. |
 | `/doc-prompts [--cat impl\|unit\|e2e\|all] [--srs ID] [--clean]` | Génère des prompts ready-to-paste pour les SRS orphelins (sans SDS implémentant et/ou sans TC vérifiant). 3 types : impl, unit-tests, E2E Playwright (si UI). Un fichier par SRS sous `docs/generated/prompts/`, à coller dans une autre session Claude Code pour combler le gap. |
+| `/doc-audit-mitigations [--all] [--apply] [--cat RSK,URSK,THR,PRSK]` | Audit code-vs-mitigation : pour chaque risque `residual_acceptable: false`, liste les contrôles cités, fait juger leur `implementation_status` par l'agent `mitigation-auditor`, annote les SRS de mitigation. Avec `--apply`, bascule les `residual_acceptable: true` éligibles. Utile pour distinguer "gap de code" et "gap de doc" avant submission RAQA. Cf. `tools/audit_mitigations.py`. |
 
 ## Layout du plugin
 
@@ -158,9 +161,9 @@ selon ton setup.
 iec62304-writer/
 ├── .claude-plugin/
 │   └── plugin.json
-├── skills/                    # 17 skills (référentiels + exports)
-├── agents/                    # 10 sub-agents
-├── commands/                  # 12 slash commands
+├── skills/                    # 20 skills (référentiels + exports + audit)
+├── agents/                    # 12 sub-agents
+├── commands/                  # 17 slash commands
 ├── scaffold/                  # assets copiés par /doc-init
 │   ├── tools/
 │   │   ├── _lib.py                  # helpers partagés (YAML parser, Item, ...)
@@ -172,7 +175,8 @@ iec62304-writer/
 │   │   ├── build_str_export.py      # /doc-str-export (idem)
 │   │   ├── build_risk_export.py     # /doc-risk-export (.md + .csv)
 │   │   ├── build_risk_xlsx.py       # /doc-risk-xlsx (Excel 4-onglets)
-│   │   └── build_use_export.py      # /doc-use-export (UEF + USE + Annex 1)
+│   │   ├── build_use_export.py      # /doc-use-export (UEF + USE + Annex 1)
+│   │   └── audit_mitigations.py     # /doc-audit-mitigations (cadrage code-vs-control)
 │   ├── dt-config.yaml         # config QMS (signataires, refs, id_format, external_resources, usability) — édité à la main
 │   ├── test-results.example.json    # spec du format CI consommé par stdr/str-export
 │   ├── static/                # boilerplates IEC 62366-1 — copiés tels quels par /doc-init
@@ -201,7 +205,8 @@ mon-projet/
 │   ├── build_str_export.py
 │   ├── build_risk_export.py
 │   ├── build_risk_xlsx.py
-│   └── build_use_export.py
+│   ├── build_use_export.py
+│   └── audit_mitigations.py        # /doc-audit-mitigations
 ├── dt-config.yaml                  # config QMS — édité à la main
 ├── test-results.example.json       # exemple format CI — à remplacer par test-results.json en CI
 └── docs/
@@ -323,6 +328,16 @@ git diff docs/items/RSK/ docs/items/THR/
 /iec62304-writer:doc-migrate
 # §C devrait être considérablement réduit
 
+# ─── 6bis. Audit code-vs-mitigation (optionnel mais recommandé avant 7) ───
+/iec62304-writer:doc-audit-mitigations
+# Pour chaque risque avec residual_acceptable: false, audit code-vs-control :
+# le `mitigation-auditor` lit le code pointé par chaque SRS de mitigation et
+# annote implementation_status (absent | partial | implemented). Distingue
+# gap de code (à traiter en étape 7) et gap de doc (SRS mal pointé ou pas
+# encore lié à du code existant). Avec --apply, bascule les risques dont
+# tous les contrôles sont implementé.
+/iec62304-writer:doc-audit-mitigations --apply
+
 # ─── 7. Combler les gaps de code et de tests réels ───
 /iec62304-writer:doc-prompts
 cat docs/generated/prompts/_index.md
@@ -376,6 +391,7 @@ ls docs/export/
 | 4 | ~10 min auto + 30-60 min review humaine | Auto + review |
 | 5 | ~10 min ciblé / ~30 min pipeline complet | Auto |
 | 6 | ~5 min | Auto |
+| 6bis | ~3-5 min auto + 10-20 min review humaine (verdicts agent) | Auto + review |
 | 7 | **Le gros morceau** — ~5-10 min/SRS × N gaps, parallélisable sur plusieurs sessions | Humain + Claude Code |
 | 8 | ~30 min | Humain (QMS) |
 | 9 | ~5 min | Auto |
