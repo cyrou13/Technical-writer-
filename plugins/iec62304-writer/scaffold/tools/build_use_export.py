@@ -241,6 +241,10 @@ def build_intro_block(
         "",
         "## 1.1 Document overview",
         "",
+        "This Usability Engineering File records, for the software item described "
+        "below, the use scenarios, the use-related risks derived from them and the "
+        "controls that address them (IEC 62366-1).",
+        "",
         ctx.section("document-overview", overview_hint),
         "",
         "## 1.2 Abbreviations and Glossary",

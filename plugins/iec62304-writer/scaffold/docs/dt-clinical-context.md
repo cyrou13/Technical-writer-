@@ -30,9 +30,13 @@
 
 ## document-overview
 
-[TODO One short paragraph describing what THIS SRS document covers:
-the software item, the lifecycle phase, and the scope. Cross-reference
-the upstream Master Plan and the downstream Test Plan.]
+[TODO One short paragraph describing THE SOFTWARE ITEM, not this document.
+This section is inlined verbatim into the SRS, the SDD, the STDR, the STR,
+the Risk Analysis Report and the Usability Engineering File, each of which
+states its own purpose in the sentence above it — so write nothing here that
+is true of only one of them. Cover what the item is, what it is delivered as,
+what is inside its boundary and what is outside. Cross-reference the upstream
+Master Plan and the downstream Test Plan.]
 
 ## abbreviations
 

@@ -188,6 +188,11 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.1 Document overview",
         "",
+        "This Software Requirements Specification (SRS) states the functional and "
+        "non-functional requirements of the software item described below, and "
+        "traces each of them to the design that realises it and to the test that "
+        "verifies it.",
+        "",
         section_or_todo(ctx.clinical, "document-overview"),
         "",
         "## 1.2 Abbreviations and Glossary",

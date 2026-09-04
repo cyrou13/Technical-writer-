@@ -143,6 +143,11 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.1 Document overview",
         "",
+        "This Risk Analysis Report records the hazards, hazardous situations and risk "
+        "controls of the software item described below, per ISO 14971 and IEC 62304 "
+        "\u00a77, together with the cybersecurity threat analysis and the residual-risk "
+        "evaluation.",
+        "",
         section_or_todo(ctx.clinical, "document-overview"),
         "",
         "## 1.2 Abbreviations and Glossary",

@@ -186,6 +186,10 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.1 Document overview",
         "",
+        "This Software Test Report (STR) records one execution of the automated test "
+        "suite of the software item described below: the platform it ran on, the "
+        "revision it ran against, and the verdict of each test.",
+        "",
         section_with_fallback(
             ctx.clinical,
             "document-overview",

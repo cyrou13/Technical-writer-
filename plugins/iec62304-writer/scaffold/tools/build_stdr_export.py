@@ -252,6 +252,10 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.1 Document overview",
         "",
+        "This Software Test Description and Reports (STDR) document states, for the "
+        "software item described below, the test cases that verify its requirements, "
+        "the environment they run in, and the result recorded for each of them.",
+        "",
         section_with_fallback(
             ctx.clinical,
             "document-overview",

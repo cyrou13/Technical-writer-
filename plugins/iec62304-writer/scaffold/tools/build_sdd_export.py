@@ -143,6 +143,11 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.1 Document overview",
         "",
+        "This Software Design Description (SDD) describes how the software item "
+        "described below is decomposed into software units, how those units "
+        "interact, and how each requirement of the Software Requirements "
+        "Specification is realised by them (IEC 62304 \u00a75.3\u2013\u00a75.4).",
+        "",
         _section(ctx, "document-overview",
                  "One paragraph describing the SDD scope: software item, design phase, audience."),
         "",
