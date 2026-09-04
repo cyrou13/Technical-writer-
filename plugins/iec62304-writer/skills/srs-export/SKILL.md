@@ -140,6 +140,26 @@ pandoc docs/export/<identifier>-SRS.md \
 Si pandoc absent → produire le `.md` seulement et logger un warning
 non-bloquant. **Ne jamais** échouer l'export pour absence de pandoc.
 
+### Diagrammes mermaid
+
+Les blocs ```` ```mermaid ```` du livrable sont rendus en PNG et remplacés par
+des images dans une **copie** du markdown que seul pandoc voit ; le `.md` livré
+garde ses blocs mermaid. Sans ce rendu, pandoc recopie la source du diagramme
+dans le `.docx` comme un bloc de code monospace — le relecteur lit
+`participant P as Pipeline` en Courier au lieu d'un schéma.
+
+Prérequis : `mermaid-cli` (`npm i -g @mermaid-js/mermaid-cli`). Variables
+d'environnement reconnues :
+
+| Variable | Rôle |
+|---|---|
+| `MMDC` | chemin du binaire `mmdc` si absent du `PATH` |
+| `MERMAID_PUPPETEER_CONFIG` | config puppeteer JSON — typiquement `{"args": ["--no-sandbox"]}` en conteneur ; à défaut `tools/puppeteer.json` est lu s'il existe |
+
+Absent → les blocs restent tels quels, une ligne INFO est loggée et l'export
+n'échoue pas. Un diagramme qui ne compile pas est laissé en bloc de code : il ne
+coûte pas les autres.
+
 ## Garde-fous
 
 - L'export **ne modifie aucun item** sous `docs/items/`. Lecture seule.

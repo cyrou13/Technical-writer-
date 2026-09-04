@@ -13,7 +13,11 @@ Python 3.12+, stdlib only.
 
 from __future__ import annotations
 
+import hashlib
+import os
 import re
+import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -408,3 +412,123 @@ def risk_level_from_index(idx: int | None) -> str:
     if idx <= 12:
         return "Medium"
     return "High"
+
+
+# ---------------------------------------------------------------------------
+# Mermaid figures
+# ---------------------------------------------------------------------------
+#
+# The .md deliverables keep their diagrams as ```mermaid fences: readable in a
+# browser, diffable in git, editable by the writer. pandoc has no idea what a
+# mermaid fence is, so it copies the source into the .docx as a monospace code
+# block and the reviewer reads `participant P as Pipeline` instead of a picture.
+#
+# So the fences are rendered to PNG and swapped for image references in a COPY
+# of the markdown that only pandoc sees. The deliverable .md is never rewritten.
+#
+# Rendering needs mermaid-cli (`mmdc`). When it is absent nothing fails: the
+# fences are left alone and the .docx is what it was before. Set MMDC to point
+# at the binary, and MERMAID_PUPPETEER_CONFIG at a puppeteer JSON config when
+# the sandbox needs one (`{"args": ["--no-sandbox"]}` is the usual case).
+
+MERMAID_FENCE_RE = re.compile(r"^```mermaid[^\n]*\n(.*?)^```[ \t]*\n", re.S | re.M)
+
+MERMAID_RENDER_TIMEOUT_S = 180
+
+
+def _mmdc_path() -> str | None:
+    return os.environ.get("MMDC") or shutil.which("mmdc")
+
+
+def _puppeteer_config() -> str | None:
+    """MERMAID_PUPPETEER_CONFIG, else tools/puppeteer.json when the repo ships one."""
+    env = os.environ.get("MERMAID_PUPPETEER_CONFIG")
+    if env:
+        return env
+    local = Path(__file__).resolve().parent / "puppeteer.json"
+    return str(local) if local.is_file() else None
+
+
+def render_mermaid_for_pandoc(
+    md: str,
+    figures_dir: Path,
+    *,
+    log=None,
+    scale: int = 3,
+) -> str | None:
+    """Return `md` with every mermaid fence replaced by a rendered PNG reference.
+
+    Returns None when there is nothing to do — no fences, or no renderer — which
+    tells the caller to hand pandoc the original file. A block that fails to
+    render is left as a fence; one bad diagram does not cost the others.
+
+    PNGs are named by the SHA-1 of the diagram source, so an unchanged diagram is
+    not re-rendered on the next build (mmdc costs a browser launch per figure)
+    and a changed one can never collide with its own previous rendering.
+    """
+    def _log(msg: str) -> None:
+        (log or (lambda m: print(m, file=sys.stderr)))(msg)
+
+    blocks = list(MERMAID_FENCE_RE.finditer(md))
+    if not blocks:
+        return None
+
+    mmdc = _mmdc_path()
+    if not mmdc:
+        _log(f"INFO: mmdc not found — {len(blocks)} mermaid diagram(s) stay as code blocks in the .docx")
+        return None
+
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    puppeteer_config = _puppeteer_config()
+
+    out: list[str] = []
+    cursor = 0
+    rendered = 0
+    for n, m in enumerate(blocks, 1):
+        source = m.group(1)
+        digest = hashlib.sha1(source.encode("utf-8")).hexdigest()[:12]
+        png = figures_dir / f"fig-{digest}.png"
+
+        if not png.is_file():
+            mmd = figures_dir / f"fig-{digest}.mmd"
+            mmd.write_text(source, encoding="utf-8")
+            cmd = [mmdc, "-i", str(mmd), "-o", str(png), "-b", "white", "-s", str(scale)]
+            if puppeteer_config:
+                cmd += ["-p", puppeteer_config]
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True,
+                                      timeout=MERMAID_RENDER_TIMEOUT_S)
+            except subprocess.TimeoutExpired:
+                _log(f"WARN: figure {n} timed out after {MERMAID_RENDER_TIMEOUT_S}s — left as a code block")
+                continue
+            finally:
+                mmd.unlink(missing_ok=True)
+            if proc.returncode != 0 or not png.is_file():
+                detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+                reason = next((ln for ln in detail if "rror" in ln), detail[0] if detail else "no output")
+                _log(f"WARN: figure {n} did not render ({reason[:200]}) — left as a code block")
+                continue
+
+        out.append(md[cursor:m.start()])
+        out.append(f"![Figure {n}]({png})\n")
+        cursor = m.end()
+        rendered += 1
+
+    if not rendered:
+        return None
+
+    out.append(md[cursor:])
+    _log(f"OK: rendered {rendered}/{len(blocks)} mermaid diagram(s) to {figures_dir.name}/")
+    return "".join(out)
+
+
+def pandoc_input(md_path: Path, figures_dir: Path, *, log=None) -> tuple[Path, bool]:
+    """Return (path to hand pandoc, whether it is a temporary file to delete)."""
+    swapped = render_mermaid_for_pandoc(
+        md_path.read_text(encoding="utf-8"), figures_dir, log=log
+    )
+    if swapped is None:
+        return md_path, False
+    tmp = md_path.with_suffix(".pandoc.md")
+    tmp.write_text(swapped, encoding="utf-8")
+    return tmp, True

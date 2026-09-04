@@ -35,6 +35,7 @@ from _lib import (  # noqa: E402
     Item,
     load_clinical_context,
     load_items,
+    pandoc_input,
     parse_yaml,
     section_with_fallback,
     todo_marker,
@@ -648,14 +649,19 @@ def try_pandoc(
     if not pandoc:
         ctx.log("INFO: pandoc not found — .docx not produced")
         return False
-    cmd = [pandoc, str(md_path), "--toc", "--toc-depth=3", "-o", str(docx_path)]
+    src, is_temp = pandoc_input(md_path, EXPORT_DIR / "figures", log=ctx.log)
+    cmd = [pandoc, str(src), "--toc", "--toc-depth=3", "-o", str(docx_path)]
     if reference_docx and reference_docx.is_file():
         cmd.insert(2, f"--reference-doc={reference_docx}")
     elif reference_docx:
         ctx.log(
             f"WARN: reference_docx '{reference_docx}' not found — using pandoc default style"
         )
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    finally:
+        if is_temp:
+            src.unlink(missing_ok=True)
     if proc.returncode != 0:
         ctx.log(
             f"WARN: pandoc failed (rc={proc.returncode}): {proc.stderr.strip()[:300]}"
