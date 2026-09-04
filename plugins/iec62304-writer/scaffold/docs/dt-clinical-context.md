@@ -21,6 +21,37 @@
     ## end-users                            → §2.2 of Risk Report
     ## characteristics-affecting-safety     → §2.3 of Risk Report (ISO TR 24971)
 
+  Software Design Description (consumed by /doc-sdd-export):
+    ## general-system-architecture          → §2
+    ## hardware-and-software-requirements   → §3.2
+    ## processing-workflow                  → §3.3
+    ## application-workflow                 → §3.4
+    ## class-diagram                        → §3.6
+    ## error-code-standardization           → §3.5.3
+    ## cots-control                         → §5
+    ## cots-hazards                         → §5
+    ## security-objectives                  → §4.1
+    ## cryptographic-functions              → §4
+    ## user-authorisation                   → §4
+    ## penetration-testing                  → §4
+    ## security-conclusion                  → §4
+
+  Software Test Plan (consumed by /doc-stp-export):
+    ## test-environment-overview  ## tests-schedule-logic  ## test-tools
+    ## test-data-doc  ## test-other-materials  ## test-installation
+    ## tests-identification-strategy  ## data-recording  ## tests-schedule
+    ## qualification
+
+  Test description and report (consumed by /doc-stdr-export, /doc-str-export):
+    ## test-preparation-environment  ## test-preparation-tools
+    ## test-preparation-data  ## rationale-for-decisions
+    ## automated-tests-platform  ## local-tests-platforms
+
+  An H2 that is not on this list is IGNORED — the anchor set lives in
+  tools/_lib.py: CLINICAL_ANCHORS. Add the anchor there before writing the
+  section, or the text is silently dropped and the deliverable keeps its
+  [TODO].
+
   Additional sections (consumed by /doc-use-export — Usability Engineering File):
     ## medical-purpose                      → UEF §2.2.1
     ## patient-population                   → UEF §2.2.2

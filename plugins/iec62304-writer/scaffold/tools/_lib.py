@@ -284,6 +284,39 @@ CLINICAL_ANCHORS = (
     "patient-population",
     "application-environment",
     "resource-requirements",
+    # Software Design Description (§2, §3, §4) — consumed by /doc-sdd-export.
+    "general-system-architecture",
+    "hardware-and-software-requirements",
+    "processing-workflow",
+    "application-workflow",
+    "class-diagram",
+    "error-code-standardization",
+    "cots-control",
+    "cots-hazards",
+    "security-objectives",
+    "cryptographic-functions",
+    "user-authorisation",
+    "penetration-testing",
+    "security-conclusion",
+    # Software Test Plan — consumed by /doc-stp-export.
+    "test-environment-overview",
+    "tests-schedule-logic",
+    "test-tools",
+    "test-data-doc",
+    "test-other-materials",
+    "test-installation",
+    "tests-identification-strategy",
+    "data-recording",
+    "tests-schedule",
+    "qualification",
+    # Software Test Description and Reports — consumed by /doc-stdr-export.
+    "test-preparation-environment",
+    "test-preparation-tools",
+    "test-preparation-data",
+    "rationale-for-decisions",
+    # Software Test Report — consumed by /doc-str-export.
+    "automated-tests-platform",
+    "local-tests-platforms",
 )
 
 
