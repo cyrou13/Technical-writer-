@@ -245,7 +245,16 @@ def build_requirements(ctx: BuildContext) -> list[str]:
         by_domain.setdefault(dom, []).append(it)
     for dom in by_domain:
         by_domain[dom].sort(key=lambda i: i.id)
-    domains_sorted = sorted(by_domain.keys())
+    # Order functional areas by the pipeline-logical `domain_order` in
+    # dt-config.yaml (e.g. read → preprocess → AIF → deconvolution → maps).
+    # Domains not listed there fall back to alphabetical, after the ordered
+    # ones. Falls back to fully alphabetical when no order is configured.
+    order_cfg = (ctx.config.get("domain_order") or []) if ctx.config else []
+    names_cfg = (ctx.config.get("domain_names") or {}) if ctx.config else {}
+    merged_names = {**DOMAIN_PRETTY, **names_cfg}
+    ordered = [d for d in order_cfg if d in by_domain]
+    rest = sorted(d for d in by_domain if d not in set(ordered))
+    domains_sorted = ordered + rest
 
     lines: list[str] = ["# 2. Requirements", "", "## 2.1 Introduction", ""]
     lines += [
@@ -265,9 +274,9 @@ def build_requirements(ctx: BuildContext) -> list[str]:
         "",
     ]
     for k, dom in enumerate(domains_sorted, start=1):
-        pretty = pretty_domain(dom)
-        if dom not in DOMAIN_PRETTY and dom != "MISC":
-            ctx.log(f"INFO: no pretty-name for domain '{dom}' — using raw code")
+        pretty = merged_names.get(dom, dom)
+        if dom not in merged_names and dom != "MISC":
+            ctx.log(f"INFO: no display name for domain '{dom}' — using raw code (set domain_names in dt-config.yaml)")
         lines += [f"### 2.2.{k} {pretty}", ""]
         for it in by_domain[dom]:
             lines += [
@@ -320,6 +329,102 @@ def build_traceability(ctx: BuildContext) -> list[str]:
     return lines
 
 
+def _flatten_config(data: object, prefix: str = "") -> list[tuple[str, object]]:
+    """Flatten a nested JSON object into (dotted.key, leaf_value) rows."""
+    rows: list[tuple[str, object]] = []
+    if isinstance(data, dict):
+        for k, v in data.items():
+            key = f"{prefix}.{k}" if prefix else str(k)
+            if isinstance(v, dict):
+                rows += _flatten_config(v, key)
+            else:
+                rows.append((key, v))
+    return rows
+
+
+def _fmt_config_value(v: object) -> str:
+    import json
+
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if v is None:
+        return "null"
+    if isinstance(v, (list, dict)):
+        return json.dumps(v)
+    return str(v)
+
+
+def build_configuration(ctx: BuildContext) -> list[str]:
+    """Render §4 — configuration items tracking table + default configuration.
+
+    Driven by `dt-config.yaml: configuration.example_file` (a JSON file,
+    relative to the repo root). Returns [] when the key is absent so the
+    section is opt-in per product. Optional `configuration.descriptions`
+    maps a dotted parameter key to a one-line description.
+    """
+    import json
+
+    cfg = (ctx.config.get("configuration") or {}) if ctx.config else {}
+    example_file = cfg.get("example_file")
+    if not example_file:
+        return []
+    path = ROOT / str(example_file)
+    if not path.is_file():
+        ctx.log(f"WARN: configuration.example_file '{example_file}' not found — §4 skipped")
+        return []
+    raw = path.read_text(encoding="utf-8")
+    try:
+        data = json.loads(raw)
+    except Exception as e:  # noqa: BLE001
+        ctx.log(f"WARN: configuration.example_file is not valid JSON ({e}) — §4 skipped")
+        return []
+
+    descriptions = cfg.get("descriptions") or {}
+    rows = _flatten_config(data)
+    lines: list[str] = [
+        "# 4. Configuration items",
+        "",
+        "This section tracks the configuration items that parametrise the "
+        "software behaviour, with their default values, and reproduces the "
+        "default configuration applied when none is supplied. The functional "
+        "requirements governing configuration are specified in §2.",
+        "",
+        "## 4.1 Configuration items and defaults",
+        "",
+        "| Parameter | Default | Description |",
+        "|---|---|---|",
+    ]
+    for key, val in rows:
+        desc = str(descriptions.get(key, "")).replace("|", "\\|")
+        lines.append(f"| `{key}` | `{_fmt_config_value(val)}` | {desc} |")
+    lines += [
+        "",
+        "## 4.2 Default configuration",
+        "",
+        f"Default configuration (`{example_file}`):",
+        "",
+        "```json",
+        raw.strip(),
+        "```",
+        "",
+        "---",
+        "",
+    ]
+    return lines
+
+
+# Provisional markers get a yellow highlight in the .docx for quick review.
+# pandoc's docx writer renders a bracketed span with class `.mark` as the Word
+# "Highlight" style (yellow) by default — `<mark>` HTML is NOT rendered. The
+# original brackets are kept visible by escaping them inside the span.
+_MARKER_RE = re.compile(r"\[((?:TODO|DRAFT|GAP)\b[^\]]*)\]")
+
+
+def highlight_markers(md: str) -> str:
+    """Yellow-highlight every [TODO...] / [DRAFT...] / [GAP-...] marker."""
+    return _MARKER_RE.sub(r"[\\[\1\\]]{.mark}", md)
+
+
 def build_appendix_deprecated(ctx: BuildContext) -> list[str]:
     deprecated = [i for i in ctx.srs if i.status == "Deprecated"]
     if not deprecated:
@@ -351,8 +456,9 @@ def render_markdown(ctx: BuildContext) -> str:
     parts += build_introduction(ctx)
     parts += build_requirements(ctx)
     parts += build_traceability(ctx)
+    parts += build_configuration(ctx)
     parts += build_appendix_deprecated(ctx)
-    return "\n".join(parts).rstrip() + "\n"
+    return highlight_markers("\n".join(parts).rstrip() + "\n")
 
 
 def try_pandoc(md_path: Path, docx_path: Path, reference_docx: Path | None, ctx: BuildContext) -> bool:

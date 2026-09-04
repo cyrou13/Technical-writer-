@@ -376,6 +376,34 @@ formelle, utiliser des commits signés (`git commit -S`).
    changement breaking de sens), repasser à `Draft` si `Approved`.
 4. **Jamais** réécrire `id`, `created`, ni renuméroter.
 
+## Mode versioning : design vs maintenance
+
+`dt-config.yaml` peut porter un bloc `versioning` qui pilote le comportement
+des agents :
+
+```yaml
+versioning:
+  mode: design            # design | maintenance (défaut : maintenance)
+  baseline_version: "1.0.0"
+```
+
+- **`maintenance`** (défaut, comportement historique) : les règles
+  d'idempotence ci-dessus s'appliquent — bump de `version`, `## Changelog`,
+  `Approved` → `Draft`. C'est le mode après la première release, où chaque
+  évolution doit laisser une trace versionnée.
+
+- **`design`** : tant qu'aucune première version n'est sortie, l'objectif est
+  une **baseline unique et clean**, pas un historique de patchs. Les agents :
+  1. écrivent **toujours** `version: <baseline_version>` (jamais de bump) ;
+  2. n'ajoutent **jamais** de section `## Changelog` (il n'y a rien à
+     « changer » avant la V1) ;
+  3. ne repassent pas d'`Approved` à `Draft` sur reformulation (tout reste
+     `Draft` en phase design) ;
+  4. mettent quand même `updated` à jour à la date courante.
+
+  La réinitialisation d'une baseline existante vers cet état est faite par
+  `tools/normalize_baseline.py` (idempotent) — voir /doc-build.
+
 ## Build
 
 `python tools/build_docs.py` (déclenché par `/doc-build`) produit :

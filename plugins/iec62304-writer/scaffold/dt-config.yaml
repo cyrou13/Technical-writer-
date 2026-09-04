@@ -47,6 +47,49 @@ id_format:
   # MAP: "{SUITE}-V{VERSION}-{NNN:03d}"
 
 # -----------------------------------------------------------------------------
+# Versioning mode (see the items-store skill).
+#   maintenance (default) — after the first release: writers bump `version`,
+#                           append `## Changelog`, reset Approved -> Draft.
+#   design                — before the first release: a single clean baseline.
+#                           Writers pin every item to `baseline_version`, never
+#                           add a changelog, keep everything Draft. Reset an
+#                           existing store with `python tools/normalize_baseline.py`.
+# -----------------------------------------------------------------------------
+# versioning:
+#   mode: design
+#   baseline_version: "1.0.0"
+
+# -----------------------------------------------------------------------------
+# Requirement ordering (SRS export §2.2). By default functional areas are
+# sorted alphabetically by DOMAIN code. To present them in a logical order
+# (e.g. the processing pipeline), list the DOMAIN codes below; unlisted
+# domains fall back to alphabetical, after the ordered ones. `domain_names`
+# overrides the §2.2 heading for a domain code (defaults are built in).
+# -----------------------------------------------------------------------------
+# domain_order:
+#   - IO
+#   - PREPROCESS
+#   - CORE
+#   - OUTPUTS
+#   - CFG
+#
+# domain_names:
+#   IO: Input and output
+#   CORE: Core processing
+
+# -----------------------------------------------------------------------------
+# Configuration items appendix (SRS export §4). Opt-in: set `example_file` to
+# a JSON config file (relative to repo root); its keys are flattened into a
+# tracking table (parameter / default / description) and the file is inlined
+# as the default configuration. `descriptions` maps a dotted key to a
+# one-liner (optional). Remove the block to drop §4.
+# -----------------------------------------------------------------------------
+# configuration:
+#   example_file: config.example.json
+#   descriptions:
+#     some.nested.key: What this parameter controls.
+
+# -----------------------------------------------------------------------------
 # Signatories — appear on the cover page of the export
 # -----------------------------------------------------------------------------
 approvals:

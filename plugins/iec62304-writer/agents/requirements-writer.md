@@ -56,8 +56,48 @@ que si aucun existant ne convient.
 - **Trop fin** : "Le système doit appeler `bcrypt.compare`."
 - **Trop large** : "Le système doit gérer les utilisateurs."
 
+## Style — solution-neutral prose (IMPÉRATIF)
+
+Une exigence décrit un **comportement observable**, pas l'implémentation.
+Le lecteur cible est un ingénieur ou un auditeur RAQA, pas quelqu'un qui
+lit le code. Une exigence ne doit jamais ressembler à un extrait de code.
+
+- **INTERDIT dans l'énoncé et les critères d'acceptation** : noms de
+  classes, d'attributs, de fonctions, d'exceptions ou de champs de config
+  en tant que sujet ou objet grammatical — p. ex. NE PAS écrire
+  « When `ProcessingConfig.vof_detection_enabled` is set… » ni « …raises
+  `ValueError` » ni « `VOFConfig.search_erosion_px` defaults to 0 ».
+- **À la place**, nommer la fonction en langage métier : « When venous
+  output function (VOF) detection is enabled (default: on)… », « …the
+  system shall reject the input and report an error », « the venous search
+  mask erosion defaults to zero (no erosion) ».
+- Un **paramètre de configuration** se réfère par sa signification ; le nom
+  technique exact n'apparaît que (a) dans un rappel entre parenthèses si
+  indispensable, ou (b) dans la table de configuration §4 du livrable —
+  jamais comme sujet de la phrase.
+- Les **chemins de code** (`ctperfusion/ctp/aif.py`) vont **uniquement**
+  dans `source:`, jamais dans le corps de l'exigence.
+- Les **valeurs cliniques/numériques** (seuils, %, secondes) restent, elles :
+  « core `rCBF < 30 %` », « penumbra `Tmax > 6 s » sont des critères
+  mesurables légitimes, pas du jargon d'implémentation.
+- **Ne JAMAIS perdre une contrainte quantitative ou algorithmique** en
+  dé-technicisant. Quand la source n'exprime une contrainte que par un
+  symbole ou une formule (`L >= 2N`, `search_erosion_px = 0`,
+  `kappa = 1.0`), traduis sa **signification** en critère mesurable en
+  prose — ne la supprime pas. Ex. `L >= 2N` → « the signal is zero-padded
+  to at least twice the number of timepoints ». Le comportement observable
+  et le nombre restent ; seul le nom du symbole disparaît.
+
+Test rapide : si retirer le nom de code rend la phrase incompréhensible OU
+fait disparaître un nombre/une relation, l'exigence est mal reformulée —
+réécris le comportement en gardant la contrainte mesurable.
+
 ## Règles
 
+- Respecter `dt-config.yaml: versioning.mode` (cf. skill `items-store`). En mode
+  `design` : figer `version` sur `baseline_version`, **pas** de bump, **pas** de
+  section `## Changelog`, garder `Draft`. En mode `maintenance` : bumps + changelog
+  normaux.
 - Pas d'invention. Si une exigence n'est pas inférable du code → `[TODO]`
   et `## Questions ouvertes`.
 - Phrases avec `doit` / `shall` + critère mesurable.

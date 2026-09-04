@@ -94,6 +94,15 @@ de mitigation n'a été créé à l'étape 4 → sauter cette étape.
 
 ### 5. Bump majeur (si argument `Vx.y`)
 
+**Mode design.** Si `dt-config.yaml: versioning.mode` vaut `design`, sauter
+entièrement cette étape et ignorer un éventuel argument `Vx.y` : en phase
+design le store est une baseline unique (`baseline_version`), sans bump ni
+`## Changelog` (cf. skill `items-store`). Les writers des étapes 3–4 laissent
+`version` figé et n'ajoutent pas de changelog. Après l'étape 6, lancer
+`python tools/normalize_baseline.py` pour re-collapser toute dérive.
+
+En mode `maintenance` (défaut, après la première release) :
+
 Pour chaque item modifié aux étapes 3 ou 4, aligner la version sur le
 label demandé :
 

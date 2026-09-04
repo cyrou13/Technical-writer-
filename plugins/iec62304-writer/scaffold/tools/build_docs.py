@@ -21,8 +21,8 @@ Usage:
 `--strict` => exit != 0 if:
   - any [TODO], [GAP-62304], [GAP-CYBER] or [GAP-USE] marker,
   - any RSK or URSK with `severity: Critical|Catastrophic`,
-  - any RSK / THR / URSK with `residual_acceptable: false`,
-  - any RSK / THR / URSK with `acceptable: false` and no control.
+  - any RSK / THR / URSK / PRSK with `residual_acceptable: false`,
+  - any RSK / THR / URSK / PRSK with `acceptable: false` and no control.
 """
 
 from __future__ import annotations
@@ -1059,7 +1059,17 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         r for r in ursks if not r.frontmatter.get("residual_acceptable", True)
     ]
 
-    # D. Mitigations to complete (all categories — RSK, THR or URSK)
+    # D. Production / supply chain (PRSK) — AAMI TIR57 / IEC 81001-5-1 §6.1
+    prsks = [p for p in by_cat.get("PRSK", []) if p.status != "Deprecated"]
+    prsk_unmit = [
+        p for p in prsks
+        if not p.frontmatter.get("acceptable", True) and not controls_by_target.get(p.id)
+    ]
+    prsk_res_bad = [
+        p for p in prsks if not p.frontmatter.get("residual_acceptable", True)
+    ]
+
+    # E. Mitigations to complete (all categories — RSK, THR, URSK or PRSK)
     mit_to_impl: list[Item] = []
     mit_to_verif: list[Item] = []
     for s in srs:
@@ -1087,6 +1097,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         has_rsk = any(t.startswith("RSK-") for t in targets)
         has_thr = any(t.startswith("THR-") for t in targets)
         has_ursk = any(t.startswith("URSK-") for t in targets)
+        has_prsk = any(t.startswith("PRSK-") for t in targets)
         kinds = []
         if has_rsk:
             kinds.append("safety")
@@ -1094,11 +1105,21 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
             kinds.append("cyber")
         if has_ursk:
             kinds.append("usability")
+        if has_prsk:
+            kinds.append("production")
         if not kinds:
             return "?"
         if len(kinds) == 1:
             return kinds[0]
         return "mixed(" + "+".join(kinds) + ")"
+
+    def _verif_action(s: Item) -> str:
+        # `implements` links (SDS) only prove a design exists, not that code
+        # is written. A `[TODO]` marker in the body flags a control that is
+        # designed but not yet implemented — so the test cannot be written yet.
+        if "[TODO]" in s.body:
+            return "Implement the control, then write the verification test"
+        return "Write a verification test"
 
     lines = [
         "# To implement — actionable backlog",
@@ -1207,10 +1228,37 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         ("URSK", "Title", "Level", "Action"),
     )
 
-    lines += ["---", "", "# D. Mitigations to complete (safety + cyber + usability)", ""]
+    lines += ["---", "", "# D. Production / supply chain — AAMI TIR57 / IEC 81001-5-1 §6.1", ""]
 
     _section(
-        "D.1 Mitigations to implement (SRS without SDS)",
+        "D.1 PRSK without control (BLOCKING)",
+        [
+            (
+                p.id, p.title,
+                p.frontmatter.get("severity", "?"),
+                p.frontmatter.get("risk_level", "?"),
+                "Define at least one control (`links.mitigates`)",
+            ) for p in prsk_unmit
+        ],
+        ("PRSK", "Title", "Severity", "Level", "Action"),
+    )
+
+    _section(
+        "D.2 PRSK with not acceptable residual (BLOCKING)",
+        [
+            (
+                p.id, p.title,
+                p.frontmatter.get("risk_level", "?"),
+                "Strengthen process/CI controls or accept the residual",
+            ) for p in prsk_res_bad
+        ],
+        ("PRSK", "Title", "Level", "Action"),
+    )
+
+    lines += ["---", "", "# E. Mitigations to complete (safety + cyber + usability + production)", ""]
+
+    _section(
+        "E.1 Mitigations to implement (SRS without SDS)",
         [
             (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
              "Write the module that fulfils this requirement")
@@ -1220,32 +1268,32 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     )
 
     _section(
-        "D.2 Mitigations to verify (SRS without TC)",
+        "E.2 Mitigations to verify (SRS without TC)",
         [
             (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
-             "Write a verification test")
+             _verif_action(s))
             for s in mit_to_verif
         ],
         ("Mitigation SRS", "Title", "Type", "Target(s)", "Action"),
     )
 
-    lines += ["---", "", "# E. Other Must requirements", ""]
+    lines += ["---", "", "# F. Other Must requirements", ""]
 
     _section(
-        "E.1 To implement",
+        "F.1 To implement",
         [(s.id, s.title) for s in must_to_impl],
         ("SRS", "Title"),
     )
 
     _section(
-        "E.2 To verify",
+        "F.2 To verify",
         [(s.id, s.title) for s in must_to_verif],
         ("SRS", "Title"),
     )
 
     nothing_left = not (
         rsk_unmit or rsk_res_bad or thr_unmit or thr_res_bad
-        or ursk_unmit or ursk_res_bad
+        or ursk_unmit or ursk_res_bad or prsk_unmit or prsk_res_bad
         or mit_to_impl or mit_to_verif or must_to_impl or must_to_verif
     )
     if nothing_left:
@@ -1261,6 +1309,8 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         "thr_residual_unacceptable": [t.id for t in thr_res_bad],
         "ursk_unmitigated": [r.id for r in ursk_unmit],
         "ursk_residual_unacceptable": [r.id for r in ursk_res_bad],
+        "prsk_unmitigated": [p.id for p in prsk_unmit],
+        "prsk_residual_unacceptable": [p.id for p in prsk_res_bad],
         "mitigations_to_implement": [s.id for s in mit_to_impl],
         "mitigations_to_verify": [s.id for s in mit_to_verif],
         "must_to_implement": [s.id for s in must_to_impl],
@@ -1593,7 +1643,8 @@ def main() -> int:
         f"verif_must={coverage['verification_rate_must']:.0%} "
         f"rsk_open={len(risk_data['rsk_unmitigated']) + len(risk_data['rsk_residual_unacceptable'])} "
         f"thr_open={len(cyber_data['thr_unmitigated']) + len(cyber_data['thr_residual_unacceptable'])} "
-        f"ursk_open={len(use_data['ursk_unmitigated']) + len(use_data['ursk_residual_unacceptable'])}"
+        f"ursk_open={len(use_data['ursk_unmitigated']) + len(use_data['ursk_residual_unacceptable'])} "
+        f"prsk_open={len(risk_data.get('prsk_residual_unacceptable', []))}"
     )
     print(f"  → {OUT_DIR}")
 

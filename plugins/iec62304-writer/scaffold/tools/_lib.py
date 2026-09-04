@@ -318,9 +318,11 @@ def section_or_todo(ctx: dict[str, str], anchor: str) -> str:
 def todo_marker(anchor: str, hint: str) -> str:
     """Render a yellow-highlighted TODO marker.
 
-    Uses HTML `<mark>` which pandoc converts to the Word "Highlight"
-    style (yellow background by default in .docx). Works in standalone
-    Markdown viewers and in the pandoc-rendered .docx.
+    Uses a pandoc bracketed span with class `.mark`, which the pandoc docx
+    writer renders as the Word "Highlight" style (yellow) by default — no
+    reference-doc or extension flag required. (HTML `<mark>` is NOT rendered
+    by the docx writer, so it must not be used.) The `[TODO ...]` brackets
+    are kept visible by escaping them inside the span.
 
     Args:
         anchor: short identifier (e.g. "general-system-architecture")
@@ -328,10 +330,11 @@ def todo_marker(anchor: str, hint: str) -> str:
                 fill in here.
 
     Example:
-        >>> todo_marker("class-diagram", "Insert the UML class diagram of the main software items.")
-        '<mark>[TODO class-diagram] Insert the UML class diagram of the main software items.</mark>'
+        >>> todo_marker("class-diagram", "Insert the UML class diagram.")
+        '[\\\\[TODO class-diagram\\\\] Insert the UML class diagram.]{.mark}'
     """
-    return f"<mark>[TODO {anchor}] {hint}</mark>"
+    safe_hint = str(hint).replace("]", "\\]")
+    return f"[\\[TODO {anchor}\\] {safe_hint}]{{.mark}}"
 
 
 def section_with_fallback(
