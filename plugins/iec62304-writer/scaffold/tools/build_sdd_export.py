@@ -235,6 +235,32 @@ def _extract_section(body: str, header: str) -> str:
     return body[start:end].strip()
 
 
+# An SDS body is rendered in pieces across §3: the rationale in §3.1, the
+# responsibility in §3.5.1, the invariants in §3.5.2. §3.7 then rendered the
+# whole body again, so every design note, every invariant and every diagram
+# appeared twice in the deliverable. These two helpers name, for one item, which
+# body section each aggregate consumed, so §3.7 can print the remainder and
+# point at the rest instead of repeating it.
+
+RATIONALE_HEADERS = ("Design notes", "Notes de design", "Notes")
+RESPONSIBILITY_HEADERS = ("Responsibility", "Responsabilité")
+
+
+def _first_present(body: str, headers: tuple[str, ...]) -> str | None:
+    """Return the first of `headers` that names a non-empty section of `body`."""
+    return next((h for h in headers if _extract_section(body, h)), None)
+
+
+def _strip_section(body: str, header: str) -> str:
+    """Remove the `## header` section (to the next H2 or EOF) from `body`."""
+    m = re.search(rf"^##\s+{re.escape(header)}\s*$", body, flags=re.MULTILINE)
+    if not m:
+        return body
+    nxt = re.search(r"^##\s+", body[m.end():], flags=re.MULTILINE)
+    end = m.end() + nxt.start() if nxt else len(body)
+    return (body[: m.start()].rstrip() + "\n\n" + body[end:].lstrip()).strip()
+
+
 def build_rationale(ctx: BuildContext) -> list[str]:
     """§3.1 — aggregate `## Design notes` (or fallback `## Notes`) from SDS items."""
     lines = ["## 3.1 Rationale for software architecture decisions", ""]
@@ -242,14 +268,11 @@ def build_rationale(ctx: BuildContext) -> list[str]:
     for sds in sorted(ctx.sds, key=lambda i: i.id):
         if sds.status == "Deprecated":
             continue
-        notes = _extract_section(sds.body, "Design notes")
-        if not notes:
-            notes = _extract_section(sds.body, "Notes de design")
-        if not notes:
-            notes = _extract_section(sds.body, "Notes")
-        if notes:
+        header = _first_present(sds.body, RATIONALE_HEADERS)
+        if header:
             found = True
-            lines += [f"### From `{sds.id}` — {sds.title}", "", notes, ""]
+            lines += [f"### From `{sds.id}` — {sds.title}", "",
+                      _extract_section(sds.body, header), ""]
     if not found:
         lines.append("_(no design rationale section found in SDS items)_")
         lines.append("")
@@ -328,9 +351,8 @@ def build_software_items(ctx: BuildContext) -> list[str]:
         lines += ["_(no SDS items)_", ""]
         return lines
     for sds in sorted(active, key=lambda i: i.id):
-        responsibility = _extract_section(sds.body, "Responsibility") or _extract_section(
-            sds.body, "Responsabilité"
-        ) or "[TODO responsibility]"
+        header = _first_present(sds.body, RESPONSIBILITY_HEADERS)
+        responsibility = _extract_section(sds.body, header) if header else "[TODO responsibility]"
         impls = (sds.fm.get("links") or {}).get("implements") or []
         sources = sds.fm.get("source") or []
         lines += [
@@ -382,16 +404,27 @@ def build_application_specific_design(ctx: BuildContext) -> list[str]:
     if not active:
         lines += ["_(no SDS items)_", ""]
         return lines
-    for sds in sorted(active, key=lambda i: i.id):
-        # Render the SDS body with H2 → H4 demotion (we're under §3.7).
-        body = re.sub(r"^##\s+", "#### ", sds.body, flags=re.MULTILINE)
+    for n, sds in enumerate(sorted(active, key=lambda i: i.id), 1):
+        body = sds.body
+        elsewhere: list[str] = []
+        for headers, where in (
+            (RESPONSIBILITY_HEADERS, "§3.5.1"),
+            (("Invariants",), "§3.5.2"),
+            (RATIONALE_HEADERS, "§3.1"),
+        ):
+            header = _first_present(body, headers)
+            if header:
+                body = _strip_section(body, header)
+                elsewhere.append(f"{header.lower()} in {where}")
+
+        # Render what is left with H2 → H4 demotion (we are under §3.7).
+        body = re.sub(r"^##\s+", "#### ", body, flags=re.MULTILINE)
         body = re.sub(r"^###\s+", "##### ", body, flags=re.MULTILINE)
-        lines += [
-            f"### 3.7.{1 + active.index(sds) if False else ''} {sds.id} — {sds.title}".rstrip(),
-            "",
-            body,
-            "",
-        ]
+
+        lines += [f"### 3.7.{n} {sds.id} — {sds.title}", ""]
+        if elsewhere:
+            lines += [f"_This item is also rendered above: {', '.join(elsewhere)}._", ""]
+        lines += [body, ""] if body.strip() else []
     return lines
 
 
