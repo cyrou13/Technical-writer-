@@ -565,3 +565,32 @@ def pandoc_input(md_path: Path, figures_dir: Path, *, log=None) -> tuple[Path, b
     tmp = md_path.with_suffix(".pandoc.md")
     tmp.write_text(swapped, encoding="utf-8")
     return tmp, True
+
+
+# ---------------------------------------------------------------------------
+# Internal sections
+# ---------------------------------------------------------------------------
+#
+# `## Notes` carries the writer's rationale: where a threshold comes from, what
+# was considered and rejected, when the item was last read against the code. It
+# is 40% of the SRS by volume and it is the half nobody can reconstruct two
+# years later — so it stays in the item, in the repository, under version
+# control. It is not part of the technical file: a reviewer reads what the
+# device shall do, not the drafting history of the sentence that says so.
+#
+# `## Design notes` is NOT in this set. It is the architecture rationale the SDD
+# renders as §3.1, a required section of that deliverable.
+
+INTERNAL_SECTIONS = ("Notes",)
+
+
+def strip_internal_sections(body: str, headers: tuple[str, ...] = INTERNAL_SECTIONS) -> str:
+    """Remove the `## <header>` sections that stay in the repo, for export."""
+    for header in headers:
+        m = re.search(rf"^##\s+{re.escape(header)}\s*$", body, flags=re.MULTILINE)
+        if not m:
+            continue
+        nxt = re.search(r"^##\s+", body[m.end():], flags=re.MULTILINE)
+        end = m.end() + nxt.start() if nxt else len(body)
+        body = (body[: m.start()].rstrip() + "\n\n" + body[end:].lstrip()).strip()
+    return body

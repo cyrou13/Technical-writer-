@@ -35,6 +35,7 @@ from _lib import (  # noqa: E402
     pandoc_input,
     parse_yaml,
     section_or_todo,
+    strip_internal_sections,
 )
 
 ROOT = Path.cwd()
@@ -90,10 +91,10 @@ def pretty_domain(code: str) -> str:
 def render_item_body(item: Item) -> str:
     """Render an SRS item body: replace H2 (## X) with H4 (#### X) to fit nesting.
 
-    Keeps body content as-is otherwise. If the body is empty, falls back to
-    the `description:` frontmatter field.
+    Drops the `## Notes` section (repo-internal rationale, see `_lib`). Keeps the
+    rest as-is. If the body is empty, falls back to the `description:` field.
     """
-    body = item.body.strip()
+    body = strip_internal_sections(item.body).strip()
     if not body:
         desc = item.fm.get("description") or ""
         if isinstance(desc, str):

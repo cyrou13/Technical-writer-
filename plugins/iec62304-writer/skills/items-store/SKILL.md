@@ -341,6 +341,30 @@ expected:
   - 302 vers ${IDP_URL}/authorize avec client_id, redirect_uri, state
 ```
 
+## Corps de l'item — ce qui est livré et ce qui reste au dépôt
+
+Le corps markdown d'un item est rendu dans le livrable **sauf `## Notes`**.
+
+`## Notes` est la trace du rédacteur : d'où vient un seuil, ce qui a été écarté
+et pourquoi, la date de la dernière relecture contre le code. Mesuré sur un
+projet réel : **40 % du volume du SRS, 46 % du TC**. C'est la moitié que
+personne ne peut reconstituer deux ans plus tard — elle reste donc dans l'item,
+versionnée à côté du code.
+
+Elle n'entre pas dans le dossier technique : un relecteur lit ce que le
+dispositif *shall* faire, pas l'historique de rédaction de la phrase qui le dit.
+Les exporteurs la retirent (`_lib.strip_internal_sections`) et
+`tools/build_rationale.py` rassemble toutes les sections dans
+`docs/generated/_rationale.md`.
+
+**`## Design notes` n'est pas concerné** : c'est le rationale d'architecture que
+le SDD rend en §3.1, une section exigée de ce livrable.
+
+Corollaire pour les agents rédacteurs : tout ce qui n'est pas une exigence, une
+interface, un invariant ou un critère d'acceptation va dans `## Notes`. Ne pas
+l'inliner dans `## Description` pour « donner le contexte » — ça grossit le
+livrable et ça n'y a pas sa place.
+
 ## Liens et traçabilité
 
 Tous les liens sont **sortants** et stockés dans `links:` du fichier source.

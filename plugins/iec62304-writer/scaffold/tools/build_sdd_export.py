@@ -40,6 +40,7 @@ from _lib import (  # noqa: E402
     pandoc_input,
     parse_yaml,
     section_with_fallback,
+    strip_internal_sections,
     todo_marker,
 )
 
@@ -405,7 +406,7 @@ def build_application_specific_design(ctx: BuildContext) -> list[str]:
         lines += ["_(no SDS items)_", ""]
         return lines
     for n, sds in enumerate(sorted(active, key=lambda i: i.id), 1):
-        body = sds.body
+        body = strip_internal_sections(sds.body)
         elsewhere: list[str] = []
         for headers, where in (
             (RESPONSIBILITY_HEADERS, "§3.5.1"),
