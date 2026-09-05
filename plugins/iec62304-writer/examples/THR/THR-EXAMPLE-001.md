@@ -1,18 +1,28 @@
 ---
 id: THR-EXAMPLE-001
-title: Exemple — vol de session via XSS dans la SPA
+title: Example — session theft through XSS in the single-page application
 status: Draft
 version: 1.0.0
 created: 2026-05-07
 updated: 2026-05-07
+reviewed: null
+owner: null
+target_release: null
 stride: [S, I]
 attacker: external_unauth
-asset: Cookie de session
+asset: session cookie
 likelihood: Medium
 impact: High
 risk_level: High
 acceptable: false
 residual_acceptable: true
+confidentiality_severity: High
+integrity_severity: Medium
+availability_severity: n/a
+residual_confidentiality_severity: Low
+residual_integrity_severity: Low
+residual_availability_severity: n/a
+architecture_view: security-global-view
 source:
   - src/auth/oauth.ts
   - src/frontend/index.html
@@ -21,44 +31,68 @@ links:
   triggers: []
 ---
 
+<!-- Exported (cyber risk analysis). Normative sections state the threat as currently assessed. No dates, no markers, no CVE speculation. -->
 ## Threat
 
-Injection de script dans le frontend (commentaire utilisateur non
-échappé, attribut `dangerouslySetInnerHTML`, dépendance frontend
-compromise) permet à un attaquant d'exécuter du JS dans le contexte de
-la SPA et de voler le cookie de session.
+Script injection in the front end — an unescaped user comment, a raw
+HTML insertion, or a compromised front-end component — lets an attacker
+run script in the application's context and steal the session cookie.
 
-## Asset menacé
+## Threatened asset
 
-Cookie de session (`sid`). Si HttpOnly absent, accessible depuis
-`document.cookie`. Sinon, l'attaquant peut tout de même piloter la
-session depuis le navigateur de la victime.
+The session cookie. Without the HttpOnly flag it is readable from
+script; with it, the attacker can still drive the session from the
+victim's browser.
 
-## Vecteur d'exploitation
+## Exploitation vector
 
-Attaquant Internet non authentifié. Insère un payload XSS via un
-champ utilisateur affiché tel quel, ou exploite une dépendance frontend
-vulnérable.
+An unauthenticated Internet attacker inserts a payload through a user
+field displayed verbatim, or exploits a vulnerable front-end component
+listed in the OTS registry. The crossing is the browser-to-application
+boundary of the global view.
 
-## Justification de niveau
+## Level justification
 
-`Likelihood: Medium` — XSS reste un défaut fréquent et l'exposition
-est publique. `Impact: High` — vol de session = takeover de compte.
-Matrice → `risk_level: High`. Non acceptable sans mitigation.
+Likelihood `Medium` — script injection remains a common defect and the
+surface is public. Impact `High` — session theft is an account takeover.
+Matrix → `risk_level: High`, not acceptable without controls.
 
-## Contrôles attendus
+## Expected controls
 
-- Cookie session `HttpOnly` + `Secure` + `SameSite=Lax`.
-- CSP stricte (`script-src 'self'`, pas de `unsafe-inline`).
-- Échappement systématique côté frontend (framework + lint).
-- Audit régulier des dépendances frontend.
+- Session cookie HttpOnly + Secure + SameSite=Lax.
+- Strict content security policy (`script-src 'self'`, no inline
+  scripts).
+- Systematic escaping in the front end (framework default plus lint).
+- Dependency audit of the front-end components.
 
-Les contrôles formels vivent dans les items qui ont
-`links.mitigates: [THR-EXAMPLE-001]` — ici `SDS-EXAMPLE-001` et
-`TC-EXAMPLE-001` (mêmes items que pour le RSK exemple).
+The formal controls are the items whose `links.mitigates` names this ID:
+SDS-EXAMPLE-001 and TC-EXAMPLE-001.
 
+## CIA impact analysis
+
+### Confidentiality
+The session cookie and everything the session can read are exposed.
+
+### Integrity
+Actions can be taken in the victim's name for the life of the session.
+
+### Availability
+Not affected.
+
+<!-- Internal, never exported. -->
 ## Notes
 
-Item exemple. Démontre la séparation safety/cyber : le même module
-`auth/oauth` mitige à la fois un RSK safety (CSRF callback) et un
-THR cyber (XSS), via des items SDS/TC partagés.
+Example item shipped with the scaffold. It shows the safety / cyber
+separation: the same `auth/oauth` module mitigates a safety RSK (callback
+CSRF) and a cyber THR (XSS) through shared SDS / TC items. CVE / CWE
+references go here, never in the body.
+
+<!-- Internal, never exported. `[GAP-CYBER]` markers allowed here and in History only. -->
+## Open questions
+
+- None.
+
+<!-- Internal, never exported. Dated re-assessments and change notes, newest first. -->
+## History
+
+- 2026-05-07 v1.0.0 — created as a scaffold example.

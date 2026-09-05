@@ -1,32 +1,39 @@
 <!--
-  Sections narratives du Software Test Description (STD).
-  Le build (`tools/build_docs.py`) inline les sections ci-dessous dans
-  `docs/generated/30_STD.md`.
+  Narrative sections of the Software Test Description (STD) and of the STP /
+  STDR deliverables. The working build (`tools/build_docs.py`) inlines the
+  sections below into `docs/generated/30_STD.md`; the reference exporters
+  inline them into the STP / STDR.
 
-  Sections reconnues :
-    ## test-strategy   → Section 3 du STD
-    ## test-pass-fail  → Section 4 (surcharge le défaut)
-    ## test-exclusions → Section 7
+  Recognised sections:
+    ## test-strategy   → STD section 3
+    ## test-pass-fail  → STD section 4 (overrides the default)
+    ## test-exclusions → STD section 7
 
-  Tout autre H2 est ignoré. Édite à la main — aucun agent n'y touche.
+  Any other H2 is ignored. Hand-maintained — no agent edits this file.
+  Everything here is EXPORTED: present tense, no dates, no markers. A
+  `[TODO …]` left below shows in the working draft by design and blocks a
+  `--release` export (TL-1).
 -->
 
 ## test-strategy
 
-[TODO Décrire la stratégie de test :
+[TODO Describe the test strategy:
 
-- niveaux ciblés (unit / intégration / système / E2E),
-- méthode (TDD/BDD/test-after, exigence de couverture),
-- outillage (Vitest/Jest, pytest, Playwright/Cypress…),
-- fréquence et déclencheurs (pre-commit, CI sur PR, nightly),
-- périmètre de l'automatisation vs tests manuels,
-- gestion des fixtures et données de test.]
+- levels targeted (unit / integration / system / E2E),
+- method (TDD / BDD / test-after, coverage expectation),
+- tooling (Vitest / Jest, pytest, Playwright / Cypress …),
+- frequency and triggers (pre-commit, CI on pull request, nightly),
+- scope of automation vs manual tests,
+- fixtures and test data management,
+- for a UI: the summative usability evaluation (IEC 62366-1) — method,
+  sample size, pass / fail criteria.]
 
 ## test-exclusions
 
-[TODO Lister ce qui n'est PAS testé en automatique et pourquoi :
+[TODO List what is NOT tested automatically and why:
 
-- composants tiers traités en boîte noire (avec justification),
-- environnements non couverts (mobile, navigateurs anciens…),
-- scénarios de charge / performance hors périmètre v1,
-- tests d'accessibilité reportés.]
+- third-party components treated as black boxes (with justification and
+  the `docs/ots.yaml` entry that carries their verification),
+- environments not covered (mobile, legacy browsers …),
+- load / performance scenarios out of scope for this release,
+- accessibility tests deferred.]

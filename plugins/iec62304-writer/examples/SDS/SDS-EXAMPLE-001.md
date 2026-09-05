@@ -1,11 +1,21 @@
 ---
 id: SDS-EXAMPLE-001
-title: Exemple — module auth/oauth
+title: Example — auth/oauth module
 status: Draft
 version: 1.0.0
 created: 2026-05-07
 updated: 2026-05-07
+reviewed: null
+owner: null
+target_release: null
 module: src/auth/oauth
+parameters:
+  - name: oauth_state_min_entropy
+    value: 256
+    unit: bit
+    settable: false
+    interval: null
+    source: src/auth/oauth.ts
 source:
   - src/auth/oauth.ts
 links:
@@ -20,37 +30,75 @@ interfaces:
     - HTTP GET /auth/login
     - HTTP GET /auth/callback
   outputs:
-    - 302 vers IdP
-    - Cookie session HttpOnly+Secure
+    - HTTP 302 to the identity provider
+    - session cookie, HttpOnly + Secure
   depends_on:
-    - openid-client (npm)
-    - jose (npm)
+    - openid-client          # docs/ots.yaml key
+    - jose                   # docs/ots.yaml key
 ---
 
-## Responsabilité
+<!-- Exported (SDS). Normative: what the module does, and only that. -->
+## Responsibility
 
-Gère le handshake OAuth2 Authorization Code + PKCE et la création de la
-session signée à l'issue du callback.
+Runs the OAuth2 Authorization Code + PKCE handshake and creates the
+signed session at the end of the callback.
 
+<!-- Exported (SDS). Normative: the contracts the module offers and consumes. -->
 ## Interfaces
 
-### Entrées
-- `GET /auth/login` — sans cookie de session.
-- `GET /auth/callback?code=...&state=...` — retour IdP.
+### Inputs
+- `GET /auth/login` — without a session cookie.
+- `GET /auth/callback?code=…&state=…` — the identity provider's return.
 
-### Sorties
-- 302 vers `${IDP_URL}/authorize` avec paramètres OAuth2 + PKCE.
-- Cookie `sid` HttpOnly + Secure + SameSite=Lax.
+### Outputs
+- HTTP 302 to the provider's authorisation endpoint with the OAuth2 and
+  PKCE parameters.
+- Session cookie `sid`, HttpOnly + Secure + SameSite=Lax.
 
-### Dépendances
-- `openid-client`
-- `jose` pour la vérification JWT
+### Dependencies
+- `openid-client` — provider discovery and token exchange.
+- `jose` — JWT verification.
 
+<!-- Exported (SDS). Normative: constraints the module maintains at all times. -->
 ## Invariants
 
-- `state` est généré cryptographiquement et lié au sid pré-session.
-- Aucun token IdP n'est stocké côté client.
+- `state` is generated with at least `oauth_state_min_entropy` (256 bit)
+  of entropy and bound to the pre-session identifier.
+- No identity-provider token is stored on the client side.
 
-## Notes de design
+<!-- Exported (SDS). Normative: the design as it is. Present tense, no history. -->
+## Design
 
-PKCE imposé même quand le client est confidentiel — défense en profondeur.
+The login handler creates a pre-session identifier, generates the
+`state` and the PKCE verifier, stores both server-side under that
+identifier, and answers with the redirection. The callback handler looks
+the pre-session up by the cookie, compares the received `state` with the
+stored one, exchanges the code with the PKCE verifier, verifies the
+identity token signature, and only then issues the session cookie. Any
+failure in that chain clears the pre-session and redirects to the login
+page with an error code.
+
+<!-- Rationale. Not exported inline; rendered ONCE in the SDD rationale appendix. No dates. -->
+## Design notes
+
+PKCE is enforced even though the client is confidential — defence in
+depth against a leaked client secret. Storing the `state` server-side
+rather than in a signed cookie was preferred so that a replayed callback
+cannot be validated twice.
+
+<!-- Internal, never exported. -->
+## Notes
+
+Example item shipped with the scaffold. The two third-party components
+are named by their `docs/ots.yaml` key only — version and supplier live
+in the registry.
+
+<!-- Internal, never exported. -->
+## Open questions
+
+- None.
+
+<!-- Internal, never exported. Dated change notes, newest first. -->
+## History
+
+- 2026-05-07 v1.0.0 — created as a scaffold example.

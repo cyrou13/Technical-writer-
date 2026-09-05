@@ -1,12 +1,23 @@
 ---
 id: SRS-EXAMPLE-001
-title: Exemple — exigence d'authentification OAuth2
+title: Example — OAuth2 authentication requirement
 status: Draft
 version: 1.0.0
 created: 2026-05-07
 updated: 2026-05-07
+reviewed: null
+owner: null
+target_release: null
+kind: security
 verification: Test
 priority: Must
+parameters:
+  - name: oauth_state_min_entropy
+    value: 256
+    unit: bit
+    settable: false
+    interval: null
+    source: src/auth/oauth.ts
 source:
   - src/auth/oauth.ts
   - src/auth/oauth.test.ts
@@ -14,25 +25,47 @@ links:
   parent: []
   implements: []
   verifies: []
-  mitigates: []
+  mitigates:
+    - RSK-EXAMPLE-001
+description: |
+  The system shall let an unauthenticated user start an OAuth2 Authorization Code flow with the configured identity provider and shall establish a signed session on a successful callback.
 ---
 
+<!-- Exported (SRS). Normative: present-tense behaviour only. No dates, decisions, hashes, code or test paths, competitor names. -->
 ## Description
 
-Le système **doit** permettre à un utilisateur non authentifié d'initier
-un flux OAuth2 Authorization Code via l'IdP configuré, et **doit**
-établir une session signée à l'issue du callback.
+The system **shall** let an unauthenticated user start an OAuth2
+Authorization Code flow with the configured identity provider, and
+**shall** establish a signed session when the callback succeeds.
 
-## Critères d'acceptation
+<!-- Exported (SRS). Numbered list, one measurable criterion per line, the number stated. Never tick-boxes. -->
+## Acceptance criteria
 
-- [ ] `GET /auth/login` redirige (302) vers `${IDP_URL}/authorize` avec
-      `client_id`, `redirect_uri`, `state`, `code_challenge`.
-- [ ] Le `state` est stocké côté serveur et vérifié au callback.
-- [ ] Au succès du callback, un cookie de session HttpOnly + Secure est
-      posé.
-- [ ] En cas d'échec d'IdP, l'utilisateur est redirigé vers `/login?error=...`.
+1. A request to the login endpoint without a session is answered with a
+   redirection (HTTP 302) to the identity provider's authorisation
+   endpoint carrying the client identifier, the redirect target, a
+   `state` value and a PKCE code challenge.
+2. The `state` value has at least `oauth_state_min_entropy` (256 bit) of
+   entropy, is stored server-side and is verified on the callback.
+3. A successful callback sets a session cookie flagged HttpOnly and
+   Secure.
+4. A failed identity-provider exchange redirects the user to the login
+   page with an error code and sets no session cookie.
 
+<!-- Internal, never exported. -->
 ## Notes
 
-Cet item est un **exemple** livré avec le scaffolding. À supprimer ou
-remplacer une fois que les vrais items sont en place.
+This item is an **example** shipped with the scaffold; delete or replace
+it once real items exist. It shows the contract: `kind` set, the one
+constant declared in `parameters:` and quoted by name, criteria
+numbered, and no path in the exported text (the paths are in `source:`).
+
+<!-- Internal, never exported. -->
+## Open questions
+
+- None.
+
+<!-- Internal, never exported. Dated change notes, newest first. -->
+## History
+
+- 2026-05-07 v1.0.0 — created as a scaffold example.

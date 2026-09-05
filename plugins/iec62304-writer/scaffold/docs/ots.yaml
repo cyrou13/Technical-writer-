@@ -1,0 +1,38 @@
+# OTS / SOUP registry — the ONLY place a third-party component is identified.
+#
+# Read by the SDD exporter (SOUP table), the security-analyst (supply-chain
+# threats) and the store lint (SL-3): every `interfaces.depends_on` entry of an
+# SDS item that is not an item ID must be a `component` key below, every entry
+# must have its ten fields filled before a `--release` export, and no version or
+# supplier may appear in item prose.
+#
+# The architecture-writer creates the entries from the dependency manifests
+# (pyproject.toml, requirements*.txt, package.json, Dockerfile); a human
+# completes `supplier`, `eol_status` and `sbom_ref` when the tool leaves "[TODO]".
+#
+# Fields:
+#   component        key used in SDS `interfaces.depends_on`; the package name as imported / installed
+#   version          the pinned version actually shipped (string)
+#   supplier         organisation or project that maintains it
+#   role             what the software uses it for, one sentence
+#   safety_relevant  true when a failure of this component can reach a clinical output
+#   functions_used   the entry points the code calls (list) — the scope of the hazard review
+#   hazard_review    RSK item reviewing the failure modes, or "none — not safety relevant"
+#   verification     TC item or suite exercising `functions_used`, or "none — not safety relevant"
+#   eol_status       supported | maintenance | end-of-life | unknown
+#   sbom_ref         pointer into the SBOM, e.g. sbom/cyclonedx.json#<component>
+#
+# Example:
+#   - component: numpy
+#     version: "1.26.4"
+#     supplier: NumPy developers
+#     role: array arithmetic for all map computations
+#     safety_relevant: true
+#     functions_used:
+#       - numpy.linalg.svd
+#     hazard_review: RSK-CTP-OTS-001
+#     verification: TC-CTP-OTS-001
+#     eol_status: supported
+#     sbom_ref: sbom/cyclonedx.json#numpy
+
+components: []
