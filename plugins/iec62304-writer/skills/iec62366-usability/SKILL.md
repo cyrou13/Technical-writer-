@@ -1,205 +1,115 @@
 ---
 name: iec62366-usability
-description: Référence IEC 62366-1 (usability engineering pour dispositifs médicaux). À invoquer pour produire des Use Scenarios (USC), des Use-Related Risks (URSK) et des tests d'usability (TC type Usability).
+description: IEC 62366-1 reference (usability engineering for medical devices). Invoke to produce Use Scenarios (USC), Use-Related Risks (URSK) and usability test cases (TC type E2E with usability_type), with the same normative-vs-History discipline as the other items.
 ---
 
-# IEC 62366-1 — Usability Engineering
+# IEC 62366-1 — usability engineering
 
-## Cadre
+## Framework
 
-- **IEC 62366-1:2015 +A1:2020** — Application of usability engineering
-  to medical devices.
-- **IEC 62366-2** — Guidance (informative).
-- Complémentaire à IEC 62304 (logiciel) et ISO 14971 (risques) : couvre
-  spécifiquement les **erreurs d'usage** par l'utilisateur final.
+- **IEC 62366-1:2015 + A1:2020** — application of usability engineering
+  to medical devices; **IEC 62366-2** — guidance.
+- Complements IEC 62304 (software) and ISO 14971 (risk): covers **use
+  errors** by the end user.
 
-## Vocabulaire
+## Vocabulary
 
-- **Use specification** — qui, où, pour quoi (intended use, profil
-  utilisateur, environnement, fréquence).
-- **Use scenario** — séquence d'actions normale d'un utilisateur pour
-  accomplir une tâche.
-- **Use error** — action ou inaction utilisateur qui produit un
-  résultat différent de l'intention du fabricant ou de l'utilisateur.
-- **Hazard-related use scenario** — use scenario dans lequel une use
-  error conduit à un hazard (et potentiellement un harm).
-- **Formative evaluation** — testing pendant le design, itératif, vise
-  l'amélioration.
-- **Summative evaluation** — testing final pour valider la sécurité
-  d'usage avant release.
+Use specification, use scenario, use error, hazard-related use scenario,
+formative evaluation, summative evaluation — IEC 62366-1 §3.
 
-## Catégories d'items
+## Item categories
 
-### USC — Use Scenarios
-Décrit qui fait quoi, où, comment. Source de vérité pour le contexte
-d'usage. Schéma frontmatter dans `items-store`.
+- **USC** — who does what, where, how. Frontmatter: `persona`,
+  `environment`, `task`, `frequency`, `criticality`.
+- **URSK** — use errors that may lead to a hazard. Distinct from RSK
+  (code origin) and THR (attacker origin): the origin is the user.
+  `links.triggers: [RSK-…]` when the error triggers a known safety
+  hazard.
+- **TC type E2E** with `usability_type` ∈ {`formative`, `summative`}.
 
-### URSK — Use-Related Risks
-Erreurs d'usage qui peuvent conduire à un hazard. **Distinctes des RSK
-techniques** (origine code) et des THR cyber (origine attaquant).
-Origine d'un URSK : l'utilisateur lui-même, par erreur, distraction ou
-mauvaise compréhension.
+## Method (agent `usability-analyst`)
 
-Quand un URSK déclenche un hazard safety (RSK), poser
-`links.triggers: [RSK-XXX]` — comme pour un THR.
+1. **UI surfaces** from the codemap: components (`*.tsx`, `*.jsx`,
+   `*.vue`, `*.svelte`, Angular templates), pages / routes, forms,
+   dialogs, error states, keyboard shortcuts, drag-and-drop.
 
-### TC type Usability
-Cas de test d'usability. Champ `usability_type` ∈ {`formative`,
-`summative`} pour distinguer.
+   ### UI pattern catalogue → frontend SRS → E2E TC
 
-## Méthode (à appliquer dans l'agent `usability-analyst`)
+   SRS produced here have `kind: usability` and a `VIEWER` (or
+   component-name) domain, distinct from the backend SRS.
 
-1. **Identifier les surfaces d'UI** depuis la code-map :
-   - Composants UI : `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`,
-     templates Angular.
-   - Pages / routes : Next.js pages, React Router, Angular Router,
-     Vue Router.
-   - Formulaires, dialogs, modals (grep `<form`, `<dialog`, `modal`).
-   - États d'erreur, alertes, toasts, banners.
-   - Raccourcis clavier, drag-and-drop, gestes tactiles.
+   | Source scanned | SRS produced | E2E TC domain |
+   |---|---|---|
+   | routes, route guards, programmatic navigation | `SRS-VIEWER-NAV-*` | permissions + navigation |
+   | required / pattern fields, Yup / Zod, `useForm` | `SRS-VIEWER-FORM-*` | form validation |
+   | confirmation dialogs, `confirm()`, double action | `SRS-VIEWER-CONFIRM-*` | confirmations |
+   | auth flows (login, logout, forced password change) | `SRS-VIEWER-AUTH-*` | auth |
+   | loading skeletons, empty states, error banners | `SRS-VIEWER-STATE-*` | error states |
+   | permission guards, conditional render | `SRS-VIEWER-PERM-*` | permission boundary |
+   | WebSocket subscriptions (live updates, reconnect) | `SRS-VIEWER-WS-*` | websocket |
+   | `aria-*`, keyboard navigation, focus management | `SRS-VIEWER-A11Y-*` | axe-core / a11y |
+   | test anchors: `data-testid`, `role="alert"`, `aria-busy` | `SRS-VIEWER-A11Y-*` (missing anchors) | testability |
 
-### Catalogue de patterns UI → SRS frontend → TC E2E
+   ### Missing-anchor scan
 
-Cette table cadre l'extraction par l'agent `usability-analyst`. Elle
-produit des SRS de domaine `VIEWER` (ou nom du composant UI), distincts
-des SRS backend produits par `requirements-writer`.
+   For every interactive component: check `data-testid`; for
+   multi-state components (loading / empty / error / ready) check
+   distinct role + testid per state. A missing anchor yields a
+   `SRS-VIEWER-A11Y-*` requiring it, `priority: Should` (Must if it
+   blocks an existing E2E TC). This channel flags what is **missing**.
 
-| Source à scanner | SRS produit | Domaine TC E2E |
-|---|---|---|
-| `<Route path="...">`, route guards, navigation programmatique | `SRS-VIEWER-NAV-*` | Playwright permissions + navigation |
-| `<TextField required pattern>`, schémas Yup/Zod côté front, `useForm` | `SRS-VIEWER-FORM-*` | Playwright form-validation |
-| `<Dialog>` confirmation patterns, `confirm()`, double-action | `SRS-VIEWER-CONFIRM-*` | Playwright confirmations |
-| Flows auth UI : login form, logout button, force password modal, `mustChangePassword` guard | `SRS-VIEWER-AUTH-*` | Playwright auth |
-| Loading skeletons, empty state components, error banners | `SRS-VIEWER-STATE-*` | Playwright error-states |
-| Permission guards UI : `if (!user.has(...))`, conditional render | `SRS-VIEWER-PERM-*` | Playwright permission boundary |
-| WebSocket subscriptions UI (live updates, reconnect logic) | `SRS-VIEWER-WS-*` | Playwright websocket |
-| Accessibility : `aria-*`, keyboard navigation, focus management | `SRS-VIEWER-A11Y-*` | axe-core, Playwright a11y |
-| Test affordance / state visibility : `data-testid` cohérents, `role="alert"`, `aria-busy`, empty/error states avec testid | `SRS-VIEWER-A11Y-*` (anchors manquantes) | Playwright (anchors présentes = testabilité) |
+   Existing Playwright / Cypress specs (`tests/e2e/**`, `e2e/**`,
+   `cypress/**`) are referenced through `test_id:`, not regenerated.
 
-### Scan des ancres testables (canal "manquantes")
+2. **Personas** from CLAUDE.md / README / product context. Not explicit →
+   ask; never invent.
+3. **USC** per identifiable user task (one business task = one USC).
+4. **Plausible use errors** per USC: wrong default, hasty validation,
+   confusable actions, entry error (typo, unit, magnitude),
+   misinterpreted visualisation (colour, scale, side), irreversible
+   action without confirmation, context error (multi-patient,
+   multi-window).
+5. **URSK** for every use error that can cause harm; otherwise a line in
+   the USC's `## Foreseeable use errors`.
+6. **Controls** in the ISO 14971 hierarchy: elimination > technical
+   measure > information. Mitigation SRS `kind: usability`,
+   `priority: Must`, `links.mitigates: [URSK-…]`.
+7. **Linkage** — `URSK.links.triggers`, mitigation SRS, usability TC.
 
-Les Playwright/E2E sont testables seulement si l'UI expose des **ancres
-stables** :
-- `data-testid` cohérents sur les éléments interactifs (boutons, forms,
-  listes, lignes de table).
-- `role="alert"` / `role="status"` + `aria-live` sur les notifications.
-- `aria-busy="true"` sur les conteneurs en chargement.
-- Empty states identifiables (testid distinct, pas juste `<div></div>`).
-- Error banners avec testid + `role="alert"`.
+## Scales
 
-Pour chaque composant interactif détecté à l'étape précédente :
-1. Vérifier la présence de `data-testid` (grep dans le fichier).
-2. Pour les états multiples (loading / empty / error / ready), vérifier
-   qu'ils sont sémantiquement distincts (role + testid par état).
-3. **Si une ancre manque → créer un `SRS-VIEWER-A11Y-*` "to-add"** qui
-   exige l'ajout. Description type : "Le composant `<Foo>` doit
-   exposer `data-testid` et `role="alert"` sur son état d'erreur pour
-   permettre la vérification automatisée et l'accessibilité."
-4. Marquer ce SRS `priority: Should` par défaut (qualité), à moins
-   qu'il bloque un TC E2E déjà existant (alors `Must`).
+As ISO 14971: severity Negligible … Catastrophic; likelihood Improbable …
+Frequent; `risk_level` Low / Medium / High.
 
-Ce scan est différent des autres : il flagge ce qui **manque**, pas ce
-qui existe. Canal feedback testabilité/a11y du code vers le backlog SRS.
+## What goes where
 
-Pour chaque pattern détecté, l'agent crée :
-- 1 ou plusieurs **SRS-VIEWER-***  (exigence UI fonctionnelle observable),
-- 1 ou plusieurs **USC** si la séquence d'usage est non-triviale,
-- 1 ou plusieurs **URSK** si une use error a un impact patient/données,
-- 1 ou plusieurs **TC type E2E** liés (`links.verifies` vers SRS,
-  optionnel `links.mitigates` vers URSK).
+The normative sections of USC and URSK state the scenario and the risk
+as currently assessed. Re-assessments after a UI change, decisions and
+revised arguments are dated lines in `## History`. `[GAP-USE]` goes in
+`## Open questions` and `## History` only, with
+`residual_acceptable: false` in the frontmatter.
 
-Si des specs Playwright/Cypress existent déjà dans le repo
-(`tests/e2e/`, `e2e/`, `cypress/`), l'agent les détecte et crée des
-TC qui pointent dessus via `test_id:` plutôt que de les recréer.
+## Summative validation
 
-2. **Établir les personas** depuis CLAUDE.md / README / contexte
-   produit. Si non explicite → demander à l'utilisateur, ne pas
-   inventer.
+IEC 62366-1 expects a documented **summative evaluation** before release:
+TC `type: E2E`, `usability_type: summative`; the STD strategy section
+states method, sample size and pass / fail criteria; the summative report
+itself is human observation, written by the user as
+`docs/usability_summative_report.md` and referenced from the STD.
 
-3. **Produire les USC** par tâche utilisateur identifiable :
-   - 1 tâche métier complète = 1 USC.
-   - Frontmatter : `persona`, `environment`, `task`, `frequency`,
-     `criticality`.
-   - Corps : pré-conditions, séquence normale, erreurs possibles
-     informelles (celles avec impact deviennent des URSK).
+## Guard rails
 
-4. **Dériver les use errors plausibles** par USC :
-   - Sélection de la mauvaise option par défaut.
-   - Validation rapide sans vérification.
-   - Confusion entre 2 actions similaires (libellés proches, icônes
-     ambiguës).
-   - Erreur de saisie (typo, unités, ordre de grandeur).
-   - Mauvaise interprétation d'une visualisation
-     (couleur/échelle ambiguës).
-   - Action irréversible sans confirmation suffisante.
-   - Erreur de contexte (multi-patient, multi-fenêtre).
+- No invented personas, no USC without a real UI component in `source:`,
+  no URSK without an inferable use error.
+- No duplication with RSK / THR — the distinction is the origin; use
+  `triggers` rather than a copy.
+- No active scanning or runtime instrumentation.
+- No UI in the project → an explicit empty report ("no UI surface
+  detected — IEC 62366-1 not applicable").
 
-5. **Pour chaque use error** : évaluer si elle peut causer un harm.
-   - Si oui → créer un URSK.
-   - Sinon → mentionner dans les notes du USC, ne pas créer d'URSK.
+## Class A note
 
-6. **Pour chaque URSK** dériver des contrôles UI dans la hiérarchie
-   ISO 14971 :
-   1. **Élimination par conception** — supprimer le path qui mène à
-      l'erreur (ex. retirer la modale ambiguë).
-   2. **Mesure technique** — confirmation, double-validation,
-      contrainte de saisie, désactivation conditionnelle.
-   3. **Information utilisateur** — message, label, hint texte,
-      formation.
-
-   Préférer 1 > 2 > 3.
-
-7. **Linkage** :
-   - `URSK.links.triggers: [RSK-XXX]` quand l'erreur déclenche un
-     hazard safety déjà identifié par le risk-analyst.
-   - SRS de mitigation (`priority: Must`,
-     `links.mitigates: [URSK-XXX]`) — comme pour RSK / THR.
-   - TC type Usability (`links.verifies: [SRS-XXX]` et/ou
-     `links.mitigates: [URSK-XXX]`).
-
-## Échelles
-
-Mêmes que ISO 14971 :
-- `severity` : Negligible / Minor / Serious / Critical / Catastrophic
-- `likelihood` : Improbable / Remote / Occasional / Probable / Frequent
-- `risk_level` : Low / Medium / High
-
-## Validation summative
-
-L'IEC 62366-1 attend une **summative evaluation** documentée avant
-release. Dans le pipeline :
-
-- TC `type: Usability` + `usability_type: summative`.
-- Le STD §3 (stratégie) doit mentionner la stratégie d'évaluation
-  (méthode, taille échantillon, critères pass/fail).
-- Le rapport summatif lui-même n'est pas auto-généré (c'est de
-  l'observation humaine) — l'utilisateur le rédige et l'inclut
-  comme artefact dans `docs/usability_summative_report.md` (référencé
-  par le STD).
-
-## Garde-fous
-
-- **Pas d'invention de personas** : si le contexte ne les définit pas,
-  alerter et demander, pas inventer.
-- **Pas de USC sans composant UI réel** : un USC doit pouvoir pointer
-  un fichier UI dans `source:`.
-- **Pas de URSK sans use error inférable** depuis un USC ou un
-  composant.
-- **Pas de duplication avec RSK / THR** : la distinction est l'origine
-  (utilisateur vs système vs attaquant). Si un hazard est déjà en RSK,
-  l'URSK qui pointe la même use error utilise `links.triggers:
-  [RSK-XXX]` plutôt qu'une duplication.
-- **Pas de scan actif** (pas de Selenium, pas d'instrumentation UI
-  runtime).
-- Si le projet n'a aucune UI (pas de composants frontend) → l'agent
-  produit un rapport vide et explicite "pas de surface UI détectée,
-  62366-1 non applicable".
-
-## Note Classe A
-
-Même en Classe A (pas de harm patient direct), une UI clinique
-*peut* induire des erreurs avec impact (mauvaise lecture, mauvais
-ordre de priorité). 62366-1 reste applicable dès qu'il y a UI
-utilisateur. La sévérité des URSK reste cohérente avec la classe :
-si un URSK arrive à `severity: Critical/Catastrophic`, la
-classification Class A est probablement à revoir.
+A clinical UI can still induce errors with impact (misreading, wrong
+side, wrong priority). 62366-1 applies whenever there is a user
+interface. A URSK reaching `severity: Critical/Catastrophic` questions
+the class A classification.

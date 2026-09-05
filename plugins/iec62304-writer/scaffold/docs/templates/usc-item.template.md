@@ -1,43 +1,56 @@
 ---
 id: USC-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title, 80 characters or fewer
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-persona: [TODO rôle utilisateur, ex. radiologue, opérateur, admin]
-environment: [TODO environnement d'usage : lecture room, console clinique, browser]
-task: [TODO tâche métier accomplie, ex. valider un cas]
+reviewed: null            # last date the item was READ against the source it cites; set by the reviewer, never by a tool
+owner: null               # who owes the open work on this item (a workstream, a role, a person)
+target_release: null      # the release the open work is owed for, e.g. V1.0.0
+persona: [TODO user role, e.g. radiologist, operator, admin]
+environment: [TODO usage environment: reading room, clinical console, browser]
+task: [TODO business task accomplished, e.g. validate a case]
 frequency: Occasional       # Rare | Occasional | Frequent | Continuous
-criticality: Medium         # Low | Medium | High (impact si la tâche échoue)
+criticality: Medium         # Low | Medium | High (impact if the task fails)
 source:
-  - [TODO chemin/composant UI]
+  - [TODO path/to/UI/component]
 links:
   parent: []
 ---
 
+<!-- Exported (usability analysis). -->
 ## Persona
 
-[TODO rôle, niveau d'expérience, contexte typique]
+[TODO role, experience level, typical context]
 
-## Pré-conditions
+## Preconditions
 
-- [TODO états système requis avant la tâche]
+- [TODO system states required before the task]
 
-## Séquence d'usage normale
+## Normal usage sequence
 
-1. [TODO étape 1]
-2. [TODO étape 2]
-3. [TODO étape finale = effet métier observable]
+1. [TODO step 1]
+2. [TODO step 2]
+3. [TODO final step = observable business effect]
 
-## Erreurs d'usage envisageables
+## Foreseeable use errors
 
-(Informel — celles avec impact deviennent des URSK liés via
-`links.use_scenario`.)
+(Informal — those with impact become URSK items whose `use_scenario` names this ID.)
 
-- [TODO erreur 1]
-- [TODO erreur 2]
+- [TODO error 1]
 
+<!-- Internal, never exported. -->
 ## Notes
 
-[TODO contexte additionnel, refs documentation utilisateur]
+[TODO user documentation references]
+
+<!-- Internal, never exported. -->
+## Open questions
+
+- [TODO]
+
+<!-- Internal, never exported. Dated change notes, newest first. -->
+## History
+
+- YYYY-MM-DD v1.0.0 — created.

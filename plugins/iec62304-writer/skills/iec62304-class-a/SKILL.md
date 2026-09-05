@@ -1,80 +1,94 @@
 ---
 name: iec62304-class-a
-description: Référentiel des livrables IEC 62304 Classe A et de leur contenu minimal. À invoquer dès qu'un agent génère, met à jour ou revoit de la documentation technique conforme 62304 Classe A.
+description: Reference for the IEC 62304 class A deliverables, their minimal content and the writing contract that makes them submission-grade (normative vs internal text, kinds, parameters, OTS registry, cybersecurity views, release gate). Invoke whenever an agent generates, updates or reviews 62304 documentation.
 ---
 
-# IEC 62304 — Classe A — référentiel
+# IEC 62304 — class A — reference
 
-Ce skill est la **source de vérité** pour le contenu des livrables. Le
-**stockage** est défini par le skill `items-store` (item-per-file, IDs
-stables, liens de traçabilité — équivalents locaux de Matrix Requirements).
+This skill is the **source of truth for the content of the
+deliverables**. Storage and the section contract are in `items-store`;
+the release gate is in `submission-readiness`.
 
-## Classe A — rappel
+## Class A — reminder
 
-Aucune blessure ni atteinte à la santé n'est possible. Périmètre 62304
-allégé, mais structure documentaire conservée.
+No injury or damage to health is possible. Lightened 62304 scope, full
+document structure.
 
-## Livrables v1 (périmètre du workflow)
+## Deliverables
 
-| Clause | Livrable | Catégorie d'items | Fichier agrégé |
-|---|---|---|---|
-| §5.1 | Plan de développement | — | `docs/generated/00_dev_plan.md` |
-| §5.2 | Software Requirements (SRS) | `SRS` | `docs/generated/10_SRS.md` |
-| §5.3–§5.4 | Software Design / Architecture (SDS) | `SDS` | `docs/generated/20_SDS.md` |
-| §5.5 / §5.7 | Software Test Description (STD) | `TC` | `docs/generated/30_STD.md` |
-| §5.1.1 / §5.2.6 | Matrice de traçabilité | (calculée) | `docs/generated/40_traceability.md` |
-| §7 | Analyse de risques safety (Class A : justification) | `RSK` | `docs/generated/50_risk_analysis.md` |
-| (cyber) | Analyse de risques cyber (IEC 81001-5-1) | `THR` | `docs/generated/60_cyber_risk_analysis.md` |
-| (use) | Analyse usability (IEC 62366-1) | `USC` + `URSK` | `docs/generated/70_usability_analysis.md` |
-| — | Backlog actionnable des mitigations à implémenter | (calculé) | `docs/generated/_to_implement.md` |
+| Clause | Deliverable | Items | Working build | Release export |
+|---|---|---|---|---|
+| §5.1 | Development plan | — | `00_dev_plan.md` | QMS |
+| §5.2 | Software Requirements Specification | `SRS` (+ `MAP` upstream) | `10_SRS.md` | `build_srs_export.py` |
+| §5.3–§5.4 | Software Design Description | `SDS`, `docs/ots.yaml`, `dt-clinical-context.md` | `20_SDS.md` | `build_sdd_export.py` |
+| §5.5 / §5.7 | Software Test Plan / Description / Report | `TC` | `30_STD.md` | `build_stp_export.py`, `build_stdr_export.py`, `build_str_export.py` |
+| §5.1.1 / §5.2.6 | Traceability | computed | `40_traceability.md` | inside SRS / STDR |
+| §7, ISO 14971 | Risk analysis (safety, production) | `RSK`, `PRSK` | `50_risk_analysis.md` | `build_risk_export.py` |
+| IEC 81001-5-1 | Cyber risk analysis | `THR` + four architecture views | `60_cyber_risk_analysis.md` | `build_risk_export.py` |
+| IEC 62366-1 | Usability analysis | `USC`, `URSK` | `70_usability_analysis.md` | `build_risk_export.py` |
+| — | Actionable backlog | computed | `_to_implement.md` | never |
+| — | Open-points register | computed | — | `--internal` only |
+| — | Design rationale | `## Design notes` | — | SDD appendix (`build_rationale.py`) |
 
-## Règles de rédaction
+## Writing rules
 
-1. **Pas d'invention.** Toute affirmation est traçable à un fichier source,
-   un test, ou un commentaire taggé. Sinon : marqueur `[TODO]`, jamais
-   fabriquer une exigence.
-2. **Phrases testables.** `shall` / `doit` + critère mesurable. Pas de
-   "rapide", "facile", "intuitif".
-3. **Pas de duplication** SRS ↔ SDS — *quoi* vs *comment*.
-4. **IDs immuables.** Voir `items-store`. Une exigence retirée passe à
-   `Deprecated`, jamais supprimée.
-5. **Atomicité.** Un item = une exigence / un module / un cas de test.
+1. **No invention.** Every statement traces to a source file, a test or
+   a tagged comment. Otherwise `[TODO]` — in an internal section.
+2. **Testable sentences.** `shall` + measurable criterion. No "fast",
+   "easy", "intuitive".
+3. **Normative text is the present.** Sections the exporters render
+   describe the device as released: no dates, no decisions, no
+   re-assessments, no commit hashes, no "since version". All of that is
+   `## History`.
+4. **Criteria are numbered**, measurable, with the number and unit;
+   never tick-boxes.
+5. **One constant, one declaration** — `parameters:` (skill
+   `items-store`). A number drifting between two items is a lint error.
+6. **Requirement kinds** — every SRS has `kind:` so the SRS has a
+   performance, interface, platform, usability, safety, security and
+   process section when the product has such requirements — and visibly
+   lacks one when it does not.
+7. **No duplication** SRS ↔ SDS — *what* vs *how*.
+8. **Immutable IDs.** Retired items are `Deprecated`.
+9. **Atomicity.** One item = one requirement / module / test / risk.
+10. **No competitor names, no code or test paths in SRS text.**
+11. **Third-party software** is identified in `docs/ots.yaml` only.
+12. **Cybersecurity architecture** is documented in the four views of
+    `docs/dt-clinical-context.md` (skill `cyber-risk-analysis`).
 
-## Champs minimaux
+## Minimal fields
 
-Voir `items-store` pour le schéma complet. Rappel des minima :
+- **SRS**: `id`, `title`, `kind`, `description`, `verification`,
+  `priority`, `source`, `status`, `parameters` (may be empty).
+- **SDS**: `id`, `module`, `responsibility`, `interfaces`, `implements`,
+  `source`, `## Design`.
+- **TC**: `id`, `title`, `verifies`, `test_id` (existing), `steps`,
+  `expected`, `source`.
 
-- **SRS** : `id`, `title`, `description`, `verification`, `source`, `status`
-- **SDS** : `id`, `module`, `responsibility`, `interfaces`, `implements`,
-  `source`
-- **TC** : `id`, `title`, `verifies`, `steps`, `expected`, `source`
+## Gap markers
 
-## Marqueurs de gap
-
-Quand un livrable ne peut pas être complété :
+When a deliverable cannot be completed:
 
 ```
-> [GAP-62304] §5.2.2 — <explication> — <action requise par l'utilisateur>
+[GAP-62304] §5.2.2 — <explanation> — <action required from the user>
 ```
 
-Le `compliance-reviewer` agrège ces marqueurs.
+Placed in `## Open questions` (and echoed in `## History`) of the item
+concerned — never in a normative section. The `compliance-reviewer`
+aggregates them; the release export refuses any that leaked (TL-1).
 
-## Ce qui n'est PAS couvert v1
+## Not covered in v1
 
-- Gestion de configuration (§8) — assurée par git.
-- Résolution des problèmes (§9) — assurée par l'issue tracker.
+- Configuration management (§8) — git.
+- Problem resolution (§9) — the issue tracker.
 
-## Risques (§7) — périmètre Classe A
+## Risks (§7) — class A scope
 
-L'analyse de risques EST couverte (skill `risk-analysis`, agent
-`risk-analyst`). En Classe A elle vise à **justifier la classification** :
+Covered by `risk-analysis` / `risk-analyst`. In class A the analysis
+**justifies the classification**: every risk ends `risk_level: Low` and
+`acceptable: true`, or has at least one control bringing
+`residual_acceptable: true`. Any non-acceptable residual, or any hazard
+with `severity: Critical/Catastrophic`, **invalidates class A** — alert.
 
-- tout risque doit finir `risk_level: Low` et `acceptable: true`, OU
-- avoir au moins un contrôle (SRS/SDS/TC `links.mitigates`) ramenant à
-  `residual_acceptable: true`.
-
-Tout risque résiduel non acceptable, ou tout hazard avec
-`severity: Critical/Catastrophic`, **invalide la Classe A** — alerter.
-
-Si le périmètre évolue (Classe B/C, gestion des SOUP), créer un skill
-`iec62304-class-b` ou étendre celui-ci.
+For class B/C or fuller SOUP management, derive `iec62304-class-b` or
+extend this skill.

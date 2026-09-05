@@ -1,54 +1,66 @@
 ---
 id: URSK-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title, 80 characters or fewer
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-use_scenario: USC-XXX-NNN              # USC parent
-use_error: [TODO action ou inaction erronée de l'utilisateur]
-hazard: [TODO source potentielle de dommage]
-hazardous_situation: [TODO circonstance d'exposition au danger]
-harm: [TODO dommage envisagé]
+reviewed: null            # last date the item was READ against the source it cites; set by the reviewer, never by a tool
+owner: null               # who owes the open work on this item (a workstream, a role, a person)
+target_release: null      # the release the open work is owed for, e.g. V1.0.0
+use_scenario: USC-XXX-NNN              # parent USC
+use_error: [TODO erroneous user action or inaction]
+hazard: [TODO potential source of harm]
+hazardous_situation: [TODO circumstance of exposure to the hazard]
+harm: [TODO envisaged damage]
 severity: Negligible       # Negligible | Minor | Serious | Critical | Catastrophic
 likelihood: Remote         # Improbable | Remote | Occasional | Probable | Frequent
-risk_level: Low            # Low | Medium | High (matrice ISO 14971)
-acceptable: true           # avant mitigation
-residual_acceptable: true  # après mitigation
+risk_level: Low            # Low | Medium | High (ISO 14971 matrix)
+acceptable: true           # before mitigation
+residual_acceptable: true  # after mitigation
 source:
-  - [TODO chemin/composant UI]
+  - [TODO path/to/UI/component]
 links:
   parent: []
-  triggers: []             # IDs RSK safety déclenchés si l'erreur survient
+  triggers: []             # safety RSK IDs triggered if the error occurs
 ---
 
-## Use Error
+<!-- Exported (usability analysis). Normative sections state the risk as currently assessed. No dates, no markers. -->
+## Use error
 
-[TODO description précise de l'action ou inaction utilisateur]
+[TODO precise description of the user action or inaction]
 
-## Conditions favorables à l'erreur
+## Conditions favoring the error
 
-[TODO ce qui rend l'erreur plus probable : libellés proches, défaut
-ambigu, fatigue, multi-patient, etc.]
+[TODO confusable labels, ambiguous default, fatigue, multi-patient context]
 
-## Hazard et harm
+## Hazard and harm
 
-[TODO hazard → harm, lien causal court]
+[TODO hazard → harm, short causal link]
 
-## Justification de niveau
+## Level justification
 
-[TODO pourquoi cette severity, cette likelihood, ce risk_level]
+[TODO why this severity, this likelihood, this risk_level]
 
-## Contrôles attendus
+## Expected controls
 
-(Hiérarchie ISO 14971 : élimination > mesure technique > information.)
+(ISO 14971 hierarchy: elimination > technical measure > information.)
 
-- [TODO contrôle 1]
-- [TODO contrôle 2]
+- [TODO control 1]
 
-Les contrôles formels vivent dans les items SRS/SDS/TC qui ont
-`links.mitigates: [<cet ID>]`.
+The formal controls are the SRS/SDS/TC items whose `links.mitigates` names this ID.
 
+<!-- Internal, never exported. -->
 ## Notes
 
-[TODO contexte, références études d'usability, formation utilisateur]
+[TODO usability study references, user training]
+
+<!-- Internal, never exported. `[GAP-USE]` markers allowed here and in History only. -->
+## Open questions
+
+- [TODO]
+
+<!-- Internal, never exported. Dated re-assessments and change notes, newest first. -->
+## History
+
+- YYYY-MM-DD v1.0.0 — created.

@@ -1,119 +1,120 @@
 ---
 name: risk-analysis
-description: Référence ISO 14971 + IEC 62304 §7 pour l'analyse de risques logicielle (Classe A). À invoquer pour identifier les dangers, dériver les contrôles, et produire des items RSK et des exigences SRS de mitigation.
+description: ISO 14971 + IEC 62304 §7 reference for software risk analysis (class A) — hazard identification, control derivation, RSK and PRSK items, and the rule that re-assessments are History, not body text. Invoke to identify hazards, derive controls and produce RSK / PRSK items and mitigation SRS.
 ---
 
-# Risk analysis — référence
+# Risk analysis — reference
 
-Applique **ISO 14971:2019** (gestion des risques dispositif médical) et
-**IEC 62304 §7** au logiciel Classe A. En Classe A, l'analyse sert
-principalement à **justifier la classification** : tous les dangers
-identifiés doivent être soit acceptables tels quels, soit réduits à
-acceptables par des contrôles.
+Applies **ISO 14971:2019** and **IEC 62304 §7** to class A software. In
+class A the analysis mainly **justifies the classification**: every
+identified hazard is either acceptable as is or reduced to acceptable by
+controls.
 
-## Vocabulaire (ISO 14971)
+## Vocabulary (ISO 14971)
 
-- **Hazard** — source potentielle de dommage.
-- **Hazardous situation** — circonstance d'exposition au danger.
-- **Harm** — dommage physique, sanitaire, ou atteinte aux données.
-- **Risk** — sévérité × probabilité.
-- **Risk control / mitigation** — mesure réduisant le risque.
+- **Hazard** — potential source of harm.
+- **Initiating cause** — an independent trigger of the sequence.
+- **Foreseeable sequence of events** — the chain from cause to hazardous
+  situation (§C.2).
+- **Hazardous situation** — circumstance of exposure to the hazard.
+- **Harm** — physical injury, damage to health, or damage to data /
+  property.
+- **Risk** — severity × probability.
+- **Risk control** — measure reducing the risk; **residual risk** —
+  what remains after it.
 
-## Catégories typiques de hazards logiciels
+## Two item categories
 
-1. **Erreur fonctionnelle** — calcul faux, état incohérent.
-2. **Défaillance** — crash, deadlock, fuite mémoire, OOM, timeout.
-3. **Sécurité** — injection, XSS, CSRF, fuite de secret, escalade.
-4. **Intégrité des données** — corruption, perte, désynchronisation.
-5. **Auth/Autz** — bypass, élévation de privilège, session fixée.
-6. **Confidentialité** — exposition de données sensibles, logs PII.
-7. **Disponibilité** — indisponibilité prolongée, dégradation silencieuse.
-8. **Usabilité** — interface induisant en erreur (rare en Classe A).
+- **RSK** — design risks arising from runtime behaviour of the software
+  (`risk_category: Design`) or from use (`Usability`, when the URSK
+  analysis is not applicable).
+- **PRSK** — production / supply-chain risks arising from packaging,
+  delivery, deployment and update (`production_phase`), anchored in a
+  Dockerfile, CI workflow, deploy script or manifest. Produced with the
+  security-analyst, since most initiating causes are cyber.
 
-## Échelles (Class A — simplifiées)
+## Typical software hazard categories
 
-### Sévérité
-| Niveau | Définition |
+1. Functional error — wrong computation, inconsistent state.
+2. Failure — crash, deadlock, memory leak, OOM, timeout.
+3. Security — injection, XSS, CSRF, secret leak, privilege escalation
+   (cross-link to a THR rather than duplicate).
+4. Data integrity — corruption, loss, desynchronisation, wrong patient.
+5. Auth / authz — bypass, fixation.
+6. Confidentiality — sensitive data exposure, PII in logs.
+7. Availability — prolonged outage, silent degradation.
+8. Usability — misleading interface (URSK when a UI exists).
+
+## Scales (class A — simplified)
+
+| Severity | Definition |
 |---|---|
-| Negligible | Inconfort utilisateur transient, sans suite |
-| Minor | Perte de données récupérable, désagrément |
-| Serious | Atteinte durable (vie privée, financier) |
-| Critical | NA Classe A — déclenche reclassement B/C |
-| Catastrophic | NA Classe A |
+| Negligible | transient inconvenience, no consequence |
+| Minor | recoverable data loss, annoyance |
+| Serious | lasting damage (privacy, financial) |
+| Critical | not class A — triggers reclassification B/C |
+| Catastrophic | not class A |
 
-### Probabilité (optionnelle Classe A)
-`Improbable` / `Remote` / `Occasional` / `Probable` / `Frequent`.
+Probability: `Improbable` / `Remote` / `Occasional` / `Probable` /
+`Frequent`. Risk level: `Low` / `Medium` / `High`. Any `Medium` or `High`
+that cannot be reduced questions class A.
 
-### Niveau de risque
-Trois niveaux : `Low` / `Medium` / `High`. Tout `High` ou `Medium` non
-réductible remet en cause la Classe A.
+## Control hierarchy (ISO 14971 §7.2) — `control_hierarchy`
 
-## Hiérarchie des contrôles (ISO 14971 §7.1)
+1. `inherent_design` — eliminate the hazard (preferred).
+2. `protective_measure` — a barrier or check in the software (input
+   validation, timeouts, bounded retry).
+3. `information_for_safety` — IFU / labeling text; requires
+   `labeling_disclosure` to hold the verbatim string.
 
-Toujours dans cet ordre :
+## Form of a mitigation
 
-1. **Sécurité par conception** — éliminer le danger (p. ex. ne pas
-   stocker de secret côté client).
-2. **Mesures de protection** dans le logiciel (validation des entrées,
-   timeouts, sandboxing, retry borné).
-3. **Information de sécurité** — documenter la limite (note README,
-   message d'erreur explicite).
+Always linked to the risk through `links.mitigates` on the control:
 
-Préférer 1 > 2 > 3.
+- **Mitigation SRS** — `kind: safety`, `priority: Must`,
+  `links.mitigates: [RSK-…]`. Appears in `_to_implement.md` until an SDS
+  implements it and a TC verifies it.
+- **SDS constraint** — a design decision (isolation, no secret in state).
+- **Dedicated TC** — evidence of effectiveness.
 
-## Forme d'une mitigation
+One control may mitigate several risks. Controls are never stored on the
+RSK; the build computes them.
 
-Trois formes possibles, **toujours liées à RSK via `links.mitigates`** :
+## Acceptability criterion
 
-- **SRS de mitigation** — exigence fonctionnelle de protection. Item SRS
-  classique, `priority: Must`, `links.mitigates: [RSK-XXX]`.
-  → Apparaît dans `_to_implement.md` tant qu'aucun SDS ne l'implémente
-  ni TC ne la vérifie.
-- **Contrainte SDS** — décision de design (isolation, no-secret-in-state).
-  Item SDS avec `links.mitigates`.
-- **TC dédié** — preuve d'efficacité (test de non-régression). Item TC
-  avec `links.mitigates`.
+A risk item is **addressed** when either `risk_level: Low` and
+`acceptable: true`, or at least one item mitigates it and
+`residual_acceptable: true` with the residual fields filled. Anything
+else appears in `_to_implement.md`.
 
-Un même item peut mitiger plusieurs RSK (liste dans `mitigates`).
+## What goes where in a RSK / PRSK body
 
-## Critère d'acceptabilité
+The eight normative sections (`## Hazard` … `## Residual risk
+justification`) state the risk **as currently assessed**. They carry no
+date, no "re-assessed after …", no marker, no reference to a commit.
 
-Un RSK est **traité** si l'une des deux conditions tient :
+- A **re-assessment** ("after the frame-rejection change, probability
+  unchanged; controls still hold") is one dated line in `## History`.
+- A **revised residual argument**: rewrite `## Residual risk
+  justification` so it reads as the current argument, and record in
+  `## History` what changed and why.
+- `[GAP-62304]` (residual not acceptable, class A in question) goes in
+  `## Open questions` and `## History`, and `residual_acceptable: false`
+  in the frontmatter — never in a normative section.
+- `arising_risks` lists RSK IDs created by a control (§7.5).
 
-- `risk_level: Low` ET `acceptable: true` (avant mitigation), OU
-- au moins un item le mitige ET `residual_acceptable: true` (après
-  mitigation, avec contrôles implémentés et vérifiés).
+## Identification method (in the agent)
 
-Tout RSK ne satisfaisant pas ces critères apparaît dans
-`_to_implement.md`.
+Walk the codemap and look systematically at: external entry points,
+trust boundaries, secret storage, persistence, sensitive computations
+(dose, amount, identifier, map values), logs and telemetry, and — for
+PRSK — every build, packaging and deploy artefact. For each candidate
+state `hazard` / `initiating_causes` / `foreseeable_sequence` /
+`hazardous_situation` / `harm` in short factual sentences. **Do not
+invent** hazards that cannot be anchored in a file.
 
-## Méthode d'identification (à appliquer dans l'agent)
+## Class A note
 
-Parcourir le codemap et systématiquement chercher :
-
-1. **Points d'entrée externes** — chaque route HTTP, chaque commande
-   CLI : quels inputs malicieux ?
-2. **Frontières de confiance** — appels externes, fichiers utilisateur,
-   variables d'environnement.
-3. **Stockage de secrets** — clés, tokens, mots de passe.
-4. **Persistance** — corruption, race conditions, transactions
-   incomplètes.
-5. **Calculs sensibles** — montant, dosage, identifiant — si pertinents.
-6. **Logs & télémétrie** — fuite PII potentielle.
-
-Pour chaque candidat, formuler `hazard` / `hazardous_situation` / `harm`
-en phrases courtes et factuelles. **Ne pas inventer** de dangers
-théoriques sans rattachement au code.
-
-## Schéma RSK
-
-Voir skill `items-store` pour les champs communs. Champs spécifiques
-RSK : `hazard`, `hazardous_situation`, `harm`, `severity`,
-`probability`, `risk_level`, `acceptable`, `residual_acceptable`.
-
-## Note Classe A
-
-Si un risque a `severity: Critical` ou `Catastrophic` après tentative
-de mitigation : **arrêter et alerter** — le produit n'est plus Classe A.
-Insérer un `[GAP-62304]` explicite et demander à l'utilisateur de
-revoir la classification.
+If a risk keeps `severity: Critical` or `Catastrophic` after mitigation:
+stop, set `residual_acceptable: false`, write the `[GAP-62304]` line in
+`## Open questions`, and alert the user — the product is not class A.

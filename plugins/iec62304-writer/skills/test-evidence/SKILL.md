@@ -1,90 +1,86 @@
 ---
 name: test-evidence
-description: Découvrir et formaliser les tests existants en items TC (test cases) IEC 62304 §5.5/§5.7. À invoquer pour produire docs/items/TC/ et le plan de vérification.
+description: Discover existing tests and formalise them as TC items (IEC 62304 §5.5/§5.7) whose test_id resolves to a real test, whose expected results are numbered and traceable to acceptance criteria, and which never count a planned test as coverage. Invoke to produce docs/items/TC/.
 ---
 
-# Test evidence — découverte et formalisation des tests
+# Test evidence — discovering and formalising tests
 
-## Découverte des tests
+## Discovery
 
-### TS/JS
+- **TS/JS** — Vitest / Jest: `**/*.{test,spec}.{ts,tsx,js,jsx}`,
+  `__tests__/`, `vitest.config.*` / `jest.config.*`. Playwright /
+  Cypress: `e2e/`, `tests/`, `cypress/`.
+- **Python** — pytest: `test_*.py`, `*_test.py`, `tests/`; config in
+  `pytest.ini`, `pyproject.toml [tool.pytest.ini_options]`, `setup.cfg`.
+  unittest: `unittest.TestCase` subclasses.
 
-- Vitest / Jest : `**/*.{test,spec}.{ts,tsx,js,jsx}`, fichiers sous
-  `__tests__/`, config dans `vitest.config.*` / `jest.config.*`.
-- Playwright / Cypress : `e2e/`, `tests/`, `cypress/`.
+## Granularity
 
-### Python
+- One `describe` / test class ≈ one module under test — a grouping, not
+  an item.
+- One `it` / `test_xxx` = one TC item.
 
-- Pytest : `test_*.py`, `*_test.py`, dossiers `tests/`. Config dans
-  `pytest.ini`, `pyproject.toml [tool.pytest.ini_options]`,
-  `setup.cfg`.
-- unittest : classes héritant de `unittest.TestCase`.
+## `test_id` must exist
 
-## Granularité
+`test_id` is a re-runnable node id: `tests/x.py::test_a`,
+`tests/x.py::Class::test_a`, `src/x.test.ts::<describe>::<it>`; several
+joined by `;`. Before writing it, confirm the node exists (`grep -n "def
+test_a" tests/x.py`, or `pytest --collect-only -q tests/x.py` when the
+user allows running the collector). A TC whose test is not written yet
+has `test_id: "[TODO]"`, `automated: false`, `status: Draft`, and is
+**not counted as verification coverage** by the build or by the
+reviewer (SL-4).
 
-Un fichier de test peut produire plusieurs items TC. Heuristique :
+## Linking `verifies`
 
-- **1 `describe`/classe de test** ≈ 1 module sous test → ne crée pas
-  d'item TC seul, juste un regroupement.
-- **1 `it` / `test_xxx`** = 1 cas de test → 1 item TC.
+1. `// @verifies SRS-…` or `# @verifies SRS-…` in the test — authority.
+2. Otherwise the SRS whose `source:` contains the file under test
+   (usually the main import of the test file).
+3. Otherwise `[TODO] SRS mapping` in `## Notes`, never invented.
 
-Exception : si un même `it` valide plusieurs assertions sans rapport,
-scinder mentalement (ne pas modifier le code).
-
-## Linkage `verifies`
-
-Pour chaque TC, remplir `links.verifies:` avec les IDs SRS vérifiés.
-Méthode :
-
-1. Si le test contient un commentaire `// @verifies SRS-XXX-NNN` →
-   autorité.
-2. Sinon, chercher les SRS dont `source:` inclut le fichier sous test
-   (souvent inférable depuis l'import principal du fichier de test).
-3. Sinon, marquer `[TODO] mapping SRS à compléter` et lister dans
-   `## Notes`.
-
-## Plan de vérification (agrégat)
-
-`docs/generated/30_STD.md` est produit par le build. Il
-contient :
-
-- liste des outils de test détectés et commandes pour les exécuter,
-- table des TC groupés par module sous test,
-- pour chaque TC : ID, titre, type (unit/integration/system), statut
-  (`Passing` / `Failing` / `Skipped` / `Unknown`), SRS vérifié(s).
-
-## Statut d'exécution
-
-Le statut **réel** d'exécution n'est pas devinable sans lancer les tests.
-
-- Par défaut : `status: Unknown` au niveau de l'item TC.
-- Si l'utilisateur a fourni un rapport (`junit.xml`, sortie pytest,
-  `vitest --reporter=json`), le parser et mettre à jour le statut.
-- Le workflow `/doc-62304` ne lance **pas** la suite de tests
-  automatiquement (côté effets de bord). Recommander à l'utilisateur de
-  fournir un rapport ou de lancer `/doc-test-run` (à construire si
-  besoin).
-
-## Sortie
-
-`docs/items/TC/TC-<DOMAIN>-<NNN>.md` avec frontmatter conforme et corps :
+## Body of a TC item
 
 ```markdown
-## Préconditions
-- ...
+<!-- Exported (STD). -->
+## Preconditions
+- <fixtures, environment>
 
-## Étapes
-1. ...
-2. ...
+<!-- Exported (STD). Numbered. -->
+## Steps
+1. <action>
+2. <action>
 
-## Résultats attendus
-- ...
+<!-- Exported (STD). Numbered; each line maps to one acceptance criterion of the verified SRS, ideally in the same order. -->
+## Expected results
+1. <observable, with the number: "status code is `QC_TOO_FEW_FRAMES` when the study holds fewer than `min_frames` (8) frames">
 
+<!-- Internal. -->
 ## Notes
+## Open questions
+## History
 ```
+
+Expected results quote the parameter names and values of the SRS they
+verify; the reviewer must be able to put criterion `n` and expected
+result `n` side by side.
+
+## Execution status
+
+The real status is not guessable without running the tests.
+
+- Default `status: Unknown` on a TC item; `executed_at: null`.
+- `tools/bind_test_results.py --junitxml <report> --apply` binds a
+  pytest run to the TC items (`status`, `executed_at`) and produces the
+  STR input. Nobody writes an execution result into a TC body by hand,
+  and never into `## History`.
+- `/doc-62304` does not run the suite. Recommend that the user provide a
+  junit report or run the binder.
 
 ## Anti-patterns
 
-- Inventer un test qui n'existe pas dans le code.
-- Mettre `status: Passing` sans avoir vu un rapport d'exécution récent.
-- Créer un TC sans `links.verifies:` ni marqueur `[TODO]`.
+- Inventing a test that does not exist in the code.
+- `status: Passing` without a bound execution report.
+- A TC without `links.verifies` and without a `[TODO]` in `## Notes`.
+- Counting a `[TODO]` / planned TC in a coverage figure.
+- Tick-boxes or free prose in `## Expected results`.
+- A date, a run id or a result in a normative section.

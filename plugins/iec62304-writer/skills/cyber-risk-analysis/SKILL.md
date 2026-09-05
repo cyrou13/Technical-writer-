@@ -1,113 +1,97 @@
 ---
 name: cyber-risk-analysis
-description: Référence IEC 81001-5-1 + AAMI TIR57 + threat modeling STRIDE pour l'analyse de cybersécurité d'un logiciel médical. À invoquer pour identifier les threats, dériver les contrôles de sécurité, et produire des items THR distincts des RSK safety.
+description: IEC 81001-5-1 + AAMI TIR57 + STRIDE reference for the cybersecurity analysis of medical device software, including the four cybersecurity architecture views the FDA 2023 premarket guidance expects and the OTS registry as the supply-chain baseline. Invoke to identify threats, derive controls and produce THR items distinct from safety RSK.
 ---
 
-# Cyber risk analysis — référence
+# Cyber risk analysis — reference
 
-Cette analyse est **distincte** de l'analyse de risques safety
-(ISO 14971 / 62304 §7) et complémentaire à elle. Cadre principal :
+Distinct from and complementary to the safety analysis (ISO 14971 /
+62304 §7). Frameworks:
 
-- **IEC 81001-5-1** — Security in the medical device software life
-  cycle (équivalent cyber de 62304).
-- **AAMI TIR57** — Principles for medical device security: risk
+- **IEC 81001-5-1** — security in the health software life cycle.
+- **AAMI TIR57** — principles for medical device security risk
   management.
-- **MDCG 2019-16** (UE) / **FDA Premarket Cybersecurity Guidance**
-  (2023) — attentes régulateurs.
+- **FDA, Cybersecurity in Medical Devices: Quality System
+  Considerations and Content of Premarket Submissions (September 2023)**
+  — expects a threat model, an SBOM, and **architecture views**.
+- **MDCG 2019-16** (EU).
 
-Une menace cyber peut **déclencher** un hazard safety. Dans ce cas,
-l'item THR pointe le RSK via `links.triggers: [RSK-XXX]`. Inversement,
-toute mitigation déclarée (SRS/SDS/TC `links.mitigates`) peut couvrir
-indifféremment des THR ou des RSK.
+A threat may **trigger** a safety hazard: `links.triggers: [RSK-…]` on
+the THR. Any control (`links.mitigates`) may address THR, RSK, PRSK or
+URSK alike.
 
-## Vocabulaire (IEC 81001-5-1)
+## Vocabulary
 
-- **Asset** — bien à protéger (donnée, identité, fonction, infrastructure).
-- **Threat** — événement adverse potentiel ciblant un asset.
-- **Vulnerability** — faiblesse exploitable.
-- **Attack** — exploitation effective ou tentative.
-- **Security control** — mesure réduisant la vraisemblance ou
-  l'impact d'une menace.
-- **Residual risk** — risque restant après contrôles.
+Asset, threat, vulnerability, attack, security control, residual risk —
+IEC 81001-5-1 §3.
 
-## Modèle d'attaquant
+## Attacker model
 
-Pour chaque THR, préciser le **type** d'attaquant retenu :
-
-| Type | Capacités présumées |
+| `attacker` | Assumed capability |
 |---|---|
-| `external_unauth` | Attaquant Internet sans compte |
-| `external_auth` | Utilisateur légitime malveillant |
-| `internal` | Employé / opérateur avec accès interne |
-| `supply_chain` | Dépendance compromise (npm, PyPI, image) |
-| `physical` | Accès physique au device / poste |
+| `external_unauth` | Internet attacker, no account |
+| `external_auth` | legitimate but malicious user |
+| `internal` | employee / operator with internal access |
+| `supply_chain` | compromised dependency, base image or registry |
+| `physical` | physical access to the device or workstation |
 
-Class A typique : focus sur `external_unauth` + `external_auth`. Les
-deux autres types sont pertinents si le SBOM ou le contexte d'usage
-les rend plausibles.
+## STRIDE
 
-## STRIDE — taxonomie
-
-| Lettre | Catégorie | Propriété violée | Exemples concrets |
+| | Category | Property violated | Examples |
 |---|---|---|---|
-| **S** | Spoofing | Authenticity | Session fixée, JWT forgé, credentials replay |
-| **T** | Tampering | Integrity | Mass-assignment, paramètre modifié en transit |
-| **R** | Repudiation | Non-repudiation | Action utilisateur sans log auditable |
-| **I** | Information disclosure | Confidentiality | Fuite via log, erreur verbose, side-channel |
-| **D** | Denial of service | Availability | Boucle infinie, regex catastrophique, OOM |
-| **E** | Elevation of privilege | Authorization | IDOR, RBAC bypass, missing authz check |
+| **S** | Spoofing | authenticity | fixed session, forged JWT, credential replay |
+| **T** | Tampering | integrity | mass assignment, parameter altered in transit, tampered image |
+| **R** | Repudiation | non-repudiation | user action without an audit record |
+| **I** | Information disclosure | confidentiality | verbose error, PII in log, side channel |
+| **D** | Denial of service | availability | catastrophic regex, OOM, unbounded queue |
+| **E** | Elevation of privilege | authorisation | IDOR, RBAC bypass, missing authz check |
 
-Appliquer STRIDE **systématiquement** à chaque entrée externe,
-frontière de confiance, et asset sensible.
+Apply S-T-R-I-D-E **systematically** to every entry point, trust boundary
+and sensitive asset drawn on the architecture views.
 
-## Méthode (à appliquer dans l'agent)
+## The four cybersecurity architecture views
 
-1. **Identifier les assets**
-   - Données : credentials, tokens de session, PII, données métier
-     sensibles.
-   - Fonctions : opérations à effet de bord critiques.
-   - Infrastructure : config, secrets d'environnement, fichiers persistés.
+The security-analyst produces (or completes) these sections of
+`docs/dt-clinical-context.md`; each THR names the view it is drawn on in
+`architecture_view:`.
 
-2. **Identifier les entry points et frontières de confiance**
-   - Routes HTTP, webhooks, websockets, CLI, lecture de fichiers
-     utilisateur, variables d'environnement, input pubsub.
+| Anchor | View | What it must show |
+|---|---|---|
+| `security-global-view` | Global system view | every network interface, port and protocol; trust boundaries; authentication points; each data store with its protection at rest and in transit; where secrets live |
+| `security-multi-patient-view` | Multi-patient harm view | how one patient's data and results are isolated from another's on the same instance: session scope, identifiers, storage separation, cleanup, what a cross-patient failure would look like |
+| `security-updateability-view` | Updateability / patchability view | how software and OTS updates are delivered, authenticated, applied and rolled back; who can trigger one; device behaviour during an update; OTS end-of-life handling |
+| `security-use-case-views` | Security use-case views | one diagram per security-relevant use case (ingest, export, administer, update, support access): actors, data crossing each boundary, the control that protects the crossing |
 
-3. **Appliquer STRIDE par entry point**
-   - Pour chaque point, parcourir S-T-R-I-D-E.
-   - Pour chaque combinaison plausible, créer un THR.
+Diagrams are Mermaid; each view has a paragraph per boundary. No dates,
+no markers — the sections are exported into the SDD.
 
-4. **Couvrir le supply chain**
-   - Lister les dépendances directes (`package.json`,
-     `pyproject.toml`).
-   - Sans base CVE locale : remonter au moins les dépendances les plus
-     sensibles (auth, crypto, parsing) en `attacker: supply_chain`.
-   - Si une base CVE est fournie ou si l'utilisateur lance
-     `npm audit` / `pip-audit`, parser le résultat.
+## Method (in the agent)
 
-5. **Estimer likelihood × impact**
-   - `likelihood` : `Low` / `Medium` / `High` selon : exposition
-     (Internet vs interne), complexité d'exploitation, présence de
-     pré-requis.
-   - `impact` : `Low` / `Medium` / `High` selon : nombre d'utilisateurs
-     affectés, nature de l'asset compromis, possibilité de propagation.
-   - `risk_level` = matrice 3×3 (cf. plus bas).
+1. **Assets** — credentials, session tokens, PII and clinical data,
+   critical side-effecting functions, configuration and secrets, signing
+   keys, images.
+2. **Entry points and boundaries** — from the codemap and the global
+   view: routes, webhooks, sockets, CLI, DICOM listeners, file imports,
+   environment variables, pub/sub.
+3. **STRIDE per entry point** — one THR per plausible combination
+   anchored in a real file or registry entry.
+4. **Supply chain from the OTS registry** — `docs/ots.yaml` is the
+   baseline. For each component with `safety_relevant: true` or in the
+   auth / crypto / parsing / network perimeter, create a THR
+   `attacker: supply_chain` only with a concrete reason (audit finding,
+   known vulnerable version, `eol_status: end-of-life`). Otherwise
+   recommend the audit in the return; never invent a CVE. Production and
+   delivery threats become **PRSK** items (skill `risk-analysis`) rather
+   than THR.
+5. **Likelihood × impact** — Low / Medium / High each; `risk_level` from
+   the 3×3 matrix below. Fill the CIA severities.
+6. **Safety link** — `links.triggers: [RSK-…]` when exploitation reaches
+   a clinical output or availability of a critical function.
+7. **Controls** — elimination > technical measure > information.
+   Mitigation SRS have `kind: security`, `priority: Must`,
+   `links.mitigates: [THR-…]`.
 
-6. **Lien vers safety**
-   - Si la menace, en cas d'exploitation, peut causer un hazard safety
-     (perte d'intégrité de donnée critique → décision incorrecte) →
-     `links.triggers: [RSK-XXX]`.
-   - Dans ce cas, le RSK lié doit aussi être créé / vérifié.
-
-7. **Dériver les contrôles**
-   - Préférer les contrôles techniques aux contrôles purement
-     procéduraux.
-   - Hiérarchie ISO 14971-like : élimination > mesures techniques >
-     information utilisateur.
-   - Créer des SRS de mitigation (`priority: Must`, `links.mitigates`).
-   - Ajouter `links.mitigates` aux SRS/SDS/TC existants déjà
-     protecteurs.
-
-## Matrice de niveau de risque (3×3)
+## 3×3 matrix
 
 |              | Impact Low | Impact Medium | Impact High |
 |---|---|---|---|
@@ -115,50 +99,28 @@ frontière de confiance, et asset sensible.
 | **Likelihood Medium** | Low | Medium | High |
 | **Likelihood High**   | Medium | High | High |
 
-`risk_level: High` non réductible → escalade auprès du système qualité.
+`risk_level: High` that cannot be reduced escalates to the quality system.
 
-## Schéma frontmatter THR
+## THR body — what goes where
 
-```yaml
-id: THR-AUTH-001
-title: Détournement de session via XSS
-status: Draft
-version: 1.0.0
-created: 2026-05-07
-updated: 2026-05-07
-stride: [S, I]                         # une ou plusieurs lettres
-attacker: external_unauth
-asset: Session token
-likelihood: Medium                     # Low | Medium | High
-impact: High                           # Low | Medium | High
-risk_level: High                       # Low | Medium | High
-acceptable: false                      # avant mitigation
-residual_acceptable: true              # après mitigation
-source:
-  - src/auth/oauth.ts
-  - src/frontend/index.html
-links:
-  parent: []
-  triggers: []                         # IDs RSK déclenchés si exploit
-```
+The six normative sections state the threat **as currently assessed**.
+Re-assessments after a code change, decisions, and revised arguments are
+dated lines in `## History`. `[GAP-CYBER]` goes in `## Open questions`
+and `## History` only, with `residual_acceptable: false` in the
+frontmatter. CVE / CWE references and audit recommendations go in
+`## Notes`.
 
-## Critère d'acceptabilité
+## Acceptability
 
-Un THR est **traité** si :
+A THR is **addressed** when `risk_level: Low` and `acceptable: true`, or
+at least one item mitigates it and `residual_acceptable: true`. Otherwise
+it appears in `_to_implement.md` (group B, Cyber).
 
-- `risk_level: Low` ET `acceptable: true`, OU
-- ≥ 1 item le mitige (SRS/SDS/TC `links.mitigates`) ET
-  `residual_acceptable: true`.
+## Guard rails
 
-Sinon, il apparaît dans `_to_implement.md` (groupe **B. Cyber**).
-
-## Garde-fous
-
-- **Pas d'invention.** Un THR doit pouvoir être rattaché à un fichier
-  source ou à une dépendance présente dans le manifest.
-- **Pas de scan vulnérabilité actif** depuis l'agent. Si l'utilisateur
-  fournit une sortie d'`npm audit` / `pip-audit` / Snyk, la parser ;
-  sinon ne pas spéculer sur des CVE.
-- **Pas de duplication safety/cyber.** Un même hazard apparaît une
-  seule fois : soit RSK (origine safety), soit THR (origine cyber). Le
-  lien `triggers` connecte les deux quand pertinent.
+- No invented threats: anchor in a file or a registry entry.
+- No active scanning, fuzzing or intrusion testing from the agent.
+- No safety/cyber duplication: one hazard appears once, as RSK or THR;
+  `triggers` connects the two.
+- OTS versions and suppliers are read from `docs/ots.yaml`, never
+  repeated in a THR body.
