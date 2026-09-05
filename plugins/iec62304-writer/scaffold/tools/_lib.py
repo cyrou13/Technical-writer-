@@ -286,6 +286,7 @@ CLINICAL_ANCHORS = (
     "resource-requirements",
     # Software Design Description (§2, §3, §4) — consumed by /doc-sdd-export.
     "general-system-architecture",
+    "architecture-rationale",
     "hardware-and-software-requirements",
     "processing-workflow",
     "application-workflow",

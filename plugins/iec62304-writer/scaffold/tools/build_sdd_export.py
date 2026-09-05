@@ -263,20 +263,31 @@ def _strip_section(body: str, header: str) -> str:
 
 
 def build_rationale(ctx: BuildContext) -> list[str]:
-    """§3.1 — aggregate `## Design notes` (or fallback `## Notes`) from SDS items."""
-    lines = ["## 3.1 Rationale for software architecture decisions", ""]
-    found = False
-    for sds in sorted(ctx.sds, key=lambda i: i.id):
-        if sds.status == "Deprecated":
-            continue
-        header = _first_present(sds.body, RATIONALE_HEADERS)
-        if header:
-            found = True
-            lines += [f"### From `{sds.id}` — {sds.title}", "",
-                      _extract_section(sds.body, header), ""]
-    if not found:
-        lines.append("_(no design rationale section found in SDS items)_")
-        lines.append("")
+    """§3.1 — an index of the design decisions, not their text.
+
+    This section used to concatenate the `## Design notes` of every SDS item.
+    On a 34-item store that ran to 2700 lines — 45% of the deliverable — and it
+    sat before §3.5, so the reader met the rationale for a design that had not
+    been described yet. The rationale for an item belongs with the item: it is
+    rendered in §3.7, and this section says which item decides what.
+    """
+    lines = [
+        "## 3.1 Rationale for software architecture decisions",
+        "",
+        _section(
+            ctx,
+            "architecture-rationale",
+            "The cross-cutting design decisions: the ones that constrain more "
+            "than one software item, and the alternatives rejected for the "
+            "system as a whole. Per-item rationale is not written here — it is "
+            "rendered with its item in §3.7.",
+        ),
+        "",
+        "The rationale for a single software item is rendered with that item in "
+        "§3.7, not here: the decision and the design it applies to are read "
+        "together or not at all.",
+        "",
+    ]
     return lines
 
 
@@ -411,7 +422,6 @@ def build_application_specific_design(ctx: BuildContext) -> list[str]:
         for headers, where in (
             (RESPONSIBILITY_HEADERS, "§3.5.1"),
             (("Invariants",), "§3.5.2"),
-            (RATIONALE_HEADERS, "§3.1"),
         ):
             header = _first_present(body, headers)
             if header:
