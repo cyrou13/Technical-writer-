@@ -1,7 +1,7 @@
 {
   "name": "iec62304-writer",
-  "version": "0.3.0",
-  "description": "Pipeline de documentation technique IEC 62304 Classe A — SRS, SDS, STD, traçabilité, analyse de risques safety (ISO 14971) + cyber (IEC 81001-5-1) + usability (IEC 62366-1), mise à jour incrémentale. Reproduit localement les features utiles de Matrix Requirements.",
+  "version": "0.4.0",
+  "description": "IEC 62304 class A technical-file pipeline — SRS, SDD, STP/STD/STR, traceability, safety (ISO 14971), production, cyber (IEC 81001-5-1) and usability (IEC 62366-1) risk analyses, incremental update, and a submission contract (normative vs internal sections, requirement kinds, parameter registry, OTS registry, cybersecurity architecture views) enforced by a gated --release export. Reproduces locally the useful features of Matrix Requirements.",
   "author": {
     "name": "cyrou13"
   },
