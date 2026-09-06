@@ -87,10 +87,14 @@ Read from `dt-config.yaml`:
   the exported SRS, the labeling anchors (`intended-use`,
   `warnings-and-precautions`) and the report strings is reported
   (warning); the glossary term wins, the labeling vocabulary first.
-- **TL-14 exporter rendering** — no per-item `version` in an export; each
-  requirement is a heading; kind sections list id + title only; each
-  deliverable carries its own `documents.<x>` identifier and title;
-  headings left empty by section stripping are removed.
+- **TL-14 exporter rendering** — no per-item `version` in an export (the
+  document version label is the only version); each requirement is a
+  heading with one attribute row; kind sections list id, title and
+  attributes only — never a summary derived from the first sentence;
+  each deliverable carries its own `documents.<x>` identifier and its
+  own title; headings left empty by section stripping are removed. The
+  anomalies appendix is a dated record and the only exported text
+  exempt from TL-2.
 
 ## Store lint (SL) — applied to `docs/items/**` and the registries
 
@@ -131,9 +135,11 @@ Read from `dt-config.yaml`:
   clinical threshold or names an algorithm carries at least one id
   (warning); every entry is used by at least one item (warning).
 - **SL-10 document identifiers** — `documents: {srs, sdd, rar, stp,
-  stdr, str}` are all set, no two equal, none `[TODO]`; every
-  `project_references` entry that names one of them carries the same
-  identifier; the export takes its own title from `documents.<x>.title`.
+  stdr, str}` are all set, no two equal, none `[TODO]`, `srs` equals
+  `document.identifier`; every `project_references` entry that names
+  one of them carries the same identifier; the export takes its own
+  identifier from `documents.<x>` and its title from `document.title`
+  with the document type substituted.
 - **SL-11 risk scales** — `classification.severity_definitions` and
   `probability_definitions` define every level used by a risk item with
   a harm-based sentence, not a number; a residual accepted with an
@@ -156,8 +162,8 @@ Read from `dt-config.yaml`:
   and a condition; the four `security-*` anchors are non-empty.
 - **SL-14 test evidence** — every TC `steps` has at least two entries
   and none is "run pytest"; `expected` has one clause per test
-  function of `test_id`; a TC bound `PassedWithSkips` /
-  `PassedWithXfail` / `Skipped` appears in the anomalies appendix; a
+  function of `test_id`; a TC bound `passed_with_skips` /
+  `passed_with_xfail` / `skipped` appears in the anomalies appendix; a
   test that runs a benchmark or release gate is its own TC.
 
 ## Decision findings (DEC) — reported, never fixed by a tool or a writer
@@ -201,12 +207,14 @@ python tools/build_rationale.py                    # standalone SDD rationale ap
 
 The exporters print offenders grouped by rule, one line per offender:
 `<rule> <item or anchor> L<line>: <excerpt>`. Each export also renders,
-from `dt-config.yaml`, its own identifier and title (`documents.<x>`),
+from `dt-config.yaml`, its own identifier (`documents.<x>`) and title,
 the References section (`references`), the unresolved anomalies
-appendix (`anomalies` + bound TC statuses + `residual_acceptable: false`
-items), and — in the STR — the run metadata of the bound run: software
-version and its source, release-evidence mode, host, branch, dirty flag,
-Python / pytest / numpy versions, run start. The `compliance-reviewer`
+appendix (`tests/test_known_defects.py: KNOWN_DEFECTS` + TC bound with a
+skip or an xfail + `residual_acceptable: false` items + the open actions
+of `anomalies.open_actions_record`), and — in the STDR and STR — the
+run metadata of the bound run (`test_results_path`): software version
+and its source, release-evidence mode, host, platform, branch, dirty
+flag, Python / pytest / numpy versions, run start. The `compliance-reviewer`
 copies that list to the top of `99_compliance_review.md`, offenders
 first, before any coverage metric.
 

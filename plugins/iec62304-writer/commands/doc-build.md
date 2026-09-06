@@ -78,8 +78,9 @@ exclusive.
      existing tests only; planned TC stated separately),
    - mode (working draft / internal / release) and the files produced,
      each with its `documents.<x>` identifier,
-   - the unresolved anomalies count (known defects + xfail/skip TCs +
-     `residual_acceptable: false` items + decision-record open actions),
+   - the unresolved anomalies count (`KNOWN_DEFECTS` register +
+     xfail/skip TCs + `residual_acceptable: false` items + open actions
+     of `anomalies.open_actions_record`),
    - DEC findings (count, not blocking),
    - for `--release`: "gate passed" or the count of offenders per rule
      and the first three offenders.

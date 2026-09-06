@@ -11,9 +11,10 @@ tools/build_docs.py`; **never edit it by hand**. The customer-facing STP
 the reference exporters (`scaffold/tools/README.md`) from the same items
 and the same narrative file, under the release gate of
 `submission-readiness`. Each takes **its own identifier and title** from
-`dt-config.yaml: documents.{stp, stdr, str}` — an STP is never titled
-after the SRS — and `project_references` entries that cite them carry
-the same identifiers (SL-10).
+`dt-config.yaml: documents.{stp, stdr, str}` (the title is
+`document.title` with the document type substituted — an STP is never
+titled after the SRS) and `project_references` entries that cite them
+carry the same identifiers (SL-10).
 
 ## Inputs
 

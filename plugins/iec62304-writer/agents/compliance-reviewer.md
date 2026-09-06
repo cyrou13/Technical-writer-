@@ -75,8 +75,8 @@ If the exporters are absent, apply the rules by hand and say so
   `dt-config.yaml: references`; SRS quoting a clinical threshold or an
   algorithm with an empty `references:`.
 - **SL-10** `documents.{srs,sdd,rar,stp,stdr,str}` set, distinct, no
-  `[TODO]`; each `project_references` entry naming one of them carries
-  the same identifier.
+  `[TODO]`, `srs == document.identifier`; each `project_references`
+  entry naming one of them carries the same identifier.
 - **SL-11** `classification.severity_definitions` /
   `probability_definitions` present, one harm-based sentence per level
   used; risk items with `residual_severity == severity` and
@@ -91,9 +91,11 @@ If the exporters are absent, apply the rules by hand and say so
   `## Controls`; `## Residual` without a level; the four `security-*`
   anchors non-empty.
 - **SL-14** TC with `steps` of one entry or containing "pytest";
-  `expected` count ≠ test functions of `test_id`; `PassedWithSkips` /
-  `PassedWithXfail` / `Skipped` cases absent from the anomalies
-  appendix; no `type: System` TC for a benchmark / release gate run.
+  `expected` count ≠ test functions of `test_id`; `passed_with_skips` /
+  `passed_with_xfail` / `skipped` cases of `test_results_path` absent
+  from the anomalies appendix; no `type: System` TC for a benchmark /
+  release gate run; `tests/test_known_defects.py` entries naming a test
+  that is not in that file.
 - **TL-11** criteria / expected results carrying "confirmed",
   "recorded", "expected failure", "placeholder", "engineering action",
   a TC / SDS / decision id as subject, "about", "roughly", "~",

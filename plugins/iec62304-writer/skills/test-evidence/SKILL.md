@@ -93,7 +93,9 @@ The real status is not guessable without running the tests.
   and never into `## History`.
 - Binder statuses: `passed`, `failed`, `skipped`, **`passed_with_skips`**
   (at least one matched test function skipped), **`passed_with_xfail`**
-  (at least one matched function is an expected failure), `not_run`.
+  (at least one matched function is an expected failure), `not_run`,
+  and `manual_passed` / `manual_failed` for a procedure executed by
+  hand and recorded by the analyst.
   The item receives `Passed | Failed | Skipped | PassedWithSkips |
   PassedWithXfail | Unknown`. A skip or an xfail inside a case is
   **never masked as passed**; the STR counts them and the case appears

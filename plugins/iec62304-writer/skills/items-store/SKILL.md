@@ -260,9 +260,12 @@ MAP. Summary:
   `executed_at` (set only by `tools/bind_test_results.py`),
   `preconditions`, `steps` (a procedure: fixture, action, observation),
   `expected` (one clause per test function of `test_id`), optional
-  `usability_type`. `status` is `Unknown` until the binder sets
-  `Passed | Failed | Skipped | PassedWithSkips | PassedWithXfail` — a
-  case with a pytest-level skip or an xfail inside is never `Passed`.
+  `usability_type`. `status` is `Unknown` until the binder sets it from
+  the run status (`passed | passed_with_skips | passed_with_xfail |
+  failed | skipped | not_run | manual_passed | manual_failed`, item
+  labels `Passed`, `PassedWithSkips`, `PassedWithXfail`, `Failed`,
+  `Skipped`, `Unknown`) — a case with a pytest-level skip or an xfail
+  inside is never `Passed`.
 - **MAP**: `external_id`, `source_document`, `source_section`.
 
 ## Links and traceability
@@ -323,13 +326,15 @@ creation) and `maintenance` afterwards (full History discipline).
 - The **open-points register** (`## Open questions`, `[TODO`/`[GAP-`
   markers) is internal; it is exported only with `--internal`.
 - The **unresolved anomalies appendix** (Enhanced documentation level)
-  is exported in every deliverable. It is built by the exporters from
-  `dt-config.yaml: anomalies.known_defects`, every TC bound as
-  `PassedWithXfail`, `Skipped` or `PassedWithSkips`, every risk item
-  with `residual_acceptable: false`, and the `## Open actions` section
-  of the decision record named in `anomalies.decision_record` — one row
-  each: id, description, owner, target release, risk link. Nothing is
-  written into it by hand.
+  is exported in every deliverable (SDD Appendix C, STR). It is built by
+  the exporters from the known-defects register (the `KNOWN_DEFECTS`
+  literal of `tests/test_known_defects.py`), every TC bound
+  `passed_with_xfail`, `skipped` or `passed_with_skips`, every risk item
+  with `residual_acceptable: false`, and the open-actions section of the
+  decision record named in `dt-config.yaml: anomalies.open_actions_record`
+  / `open_actions_section` — one row each: id, description, owner, target
+  release, risk link. Nothing is written into it by hand; it is the only
+  exported text allowed to carry dates.
 
 ## Build
 
