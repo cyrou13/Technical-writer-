@@ -15,7 +15,8 @@ production_phase: Packaging      # Packaging | Delivery | Deployment | Update
 # Asset exposed to the hazard
 asset_at_risk: [TODO]            # container image, signing key, config file, artefact, etc.
 
-# ISO 14971 §C.2 — chain of causation
+# ISO 14971 §C.2 — chain of causation. The hazard is the potential source of harm in the released process —
+# never the pre-control state ("the manifest currently contains a placeholder"), never a person, a host or a machine name.
 hazard: [TODO potential source of harm]
 initiating_causes: |
   - [TODO cause 1]
@@ -27,7 +28,9 @@ foreseeable_sequence: |
 hazardous_situation: [TODO circumstance of exposure]
 harm: [TODO envisaged damage]
 
-# Initial risk estimate (before mitigation)
+# Initial risk estimate (before mitigation) — on the scales DEFINED in dt-config.yaml
+# `classification.severity_definitions` / `probability_definitions` (harm-based): a regulatory breach and a
+# neurological injury are not the same severity unless the definitions say so.
 severity: Negligible             # Negligible | Minor | Serious | Critical | Catastrophic
 probability: Remote              # Improbable | Remote | Occasional | Probable | Frequent
 risk_level: Low                  # Low | Medium | High (qualitative, computed from the matrix)
@@ -36,10 +39,11 @@ acceptable: true                 # true if no mitigation is needed
 # Risk control hierarchy — ISO 14971 §7.2
 # inherent_design        : eliminate the hazard at process design time (preferred)
 # protective_measure     : add a barrier / check that prevents harm
-# information_for_safety : warn the operator / deployment team
+# information_for_safety : warn the operator / deployment team — on its own NOT creditable risk reduction
 control_hierarchy: protective_measure
 
-# Residual risk (after mitigation) — re-evaluated once controls are in place
+# Residual risk (after mitigation) — re-evaluated once controls are in place. An unchanged index that is
+# accepted needs a stated rationale in `## Residual risk justification`.
 residual_probability: Improbable
 residual_severity: Negligible
 residual_risk_level: Low
@@ -52,10 +56,10 @@ links:
   parent: []
 ---
 
-<!-- Exported (risk analysis, Production tab). Normative sections state the risk as currently assessed. No dates, no markers. -->
+<!-- Exported (risk analysis, Production tab). Normative sections state the risk as currently assessed. No dates, no markers, no person or host name, no "confirm with …", no issue number. -->
 ## Hazard
 
-[TODO the hazard, anchored in a production artefact (Dockerfile, CI/CD workflow, deploy script, package manifest)]
+[TODO the hazard as it exists in the released process, anchored in a production artefact (Dockerfile, CI/CD workflow, deploy script, package manifest) — not the state before the controls]
 
 ## Initiating causes
 
@@ -71,16 +75,18 @@ links:
 
 ## Harm
 
-[TODO envisaged damage: data integrity, patient safety, availability, propagation]
+[TODO envisaged damage on the harm definitions of the severity scale: data integrity, patient safety, availability, propagation]
 
 ## Initial risk justification
 
-[TODO why this severity and this probability; AAMI TIR57, IEC 81001-5-1 §6.1, incident data]
+[TODO why this severity and this probability against the defined scales; AAMI TIR57, IEC 81001-5-1 §6.1, incident data]
 
+<!-- Exported (RAR, per record). One line per control: SRS/SDS id, what it does, its tier. The exporter prints each control's title and its bound TC status — that status is the control's evidence. Typical: image signing, pinned digests, SBOM attestation, reproducible builds. -->
 ## Risk controls
 
-[TODO informal list; formal controls are the SRS/SDS/TC items whose `links.mitigates` names this ID. Typical: image signing, pinned digests, SBOM attestation, reproducible builds.]
+- SRS-XXX-NNN — [TODO what the control does] (tier: [TODO])
 
+<!-- Exported (RAR, per record). Undated. Why the index moved, or why an unchanged index is accepted. -->
 ## Residual risk justification
 
 [TODO why the residual risk is acceptable after the controls]

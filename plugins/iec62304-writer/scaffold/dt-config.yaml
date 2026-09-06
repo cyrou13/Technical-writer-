@@ -9,11 +9,37 @@
 # Document identification — the signed cover of a `--release` export.
 # -----------------------------------------------------------------------------
 document:
-  identifier: "[TODO document number in your QMS, e.g. XX-DP-PRODUCT-10-006-SRS]"
+  identifier: "[TODO document number in your QMS, e.g. XX-DP-PRODUCT-10-006-SRS]"   # the SRS; the other deliverables take theirs from `documents` below
   title: "[TODO Software Requirements Specification — <product>]"
   short_name: "[TODO short product name]"
   version_label: V01                    # released version of THIS document
   date: YYYY-MM-DD                      # release date of the current version — the DC-1 reference
+
+# -----------------------------------------------------------------------------
+# Document identifiers — one per deliverable. Each export takes ITS OWN
+# identifier and title from here (an STP is never titled "Software Requirements
+# Specification — … — Software Test Plan"), and every `project_references`
+# entry that names one of these documents must carry the same identifier.
+# -----------------------------------------------------------------------------
+documents:
+  srs:
+    identifier: "[TODO e.g. XX-DP-PRODUCT-10-006-SRS]"
+    title: "Software Requirements Specification — [TODO product]"
+  sdd:
+    identifier: "[TODO e.g. XX-DP-PRODUCT-10-007-SDD]"
+    title: "Software Design Description — [TODO product]"
+  rar:
+    identifier: "[TODO e.g. XX-DP-PRODUCT-10-005-RAR]"
+    title: "Risk Analysis Report — [TODO product]"
+  stp:
+    identifier: "[TODO e.g. XX-DP-PRODUCT-10-008-STP]"
+    title: "Software Test Plan — [TODO product]"
+  stdr:
+    identifier: "[TODO e.g. XX-DP-PRODUCT-10-009-STDR]"
+    title: "Software Test Description and Results — [TODO product]"
+  str:
+    identifier: "[TODO e.g. XX-DP-PRODUCT-10-010-STR]"
+    title: "Software Test Report — [TODO product]"
 
 # -----------------------------------------------------------------------------
 # Product metadata (also used to build item IDs)
@@ -53,6 +79,23 @@ classification:
   record: null                          # the item carrying the argument, e.g. MAP-CLASS-001
   approved_on: null
   approved_by: null
+  # Risk scales rendered in the RAR (§ methodology). A scale is a set of HARM-BASED
+  # definitions (ISO 14971:2019 Annex C terms), not a names→integers mapping: a
+  # regulatory breach and a neurological injury may not share a severity unless
+  # the definition says so. Every RSK / PRSK / URSK is rated on these definitions,
+  # and the class argument lists each RSK once with its initial and residual severity.
+  severity_definitions:
+    Negligible: "[TODO e.g. inconvenience or temporary discomfort; no medical intervention]"
+    Minor: "[TODO e.g. temporary injury or impairment not requiring professional medical intervention]"
+    Serious: "[TODO e.g. injury or impairment requiring professional medical intervention]"
+    Critical: "[TODO e.g. permanent impairment or life-threatening injury]"
+    Catastrophic: "[TODO e.g. patient death]"
+  probability_definitions:
+    Improbable: "[TODO e.g. fewer than 1 in 10^6 uses; not expected in the device lifetime]"
+    Remote: "[TODO e.g. 1 in 10^5 to 10^6 uses]"
+    Occasional: "[TODO e.g. 1 in 10^4 to 10^5 uses]"
+    Probable: "[TODO e.g. 1 in 10^3 to 10^4 uses]"
+    Frequent: "[TODO e.g. more than 1 in 10^3 uses]"
 
 # -----------------------------------------------------------------------------
 # Requirement ordering — functional areas of the SRS in logical order; domains
@@ -98,12 +141,44 @@ lint:
   forbidden_terms: []
 
 # -----------------------------------------------------------------------------
-# Cross-document references used in §1.3 of the deliverables.
+# Cross-document references used in §1.3 of the deliverables. An entry that
+# names one of the `documents` above MUST carry that document's identifier —
+# the lint refuses a mismatch (a STP numbered 10-008 that cites itself as 10-006).
 # -----------------------------------------------------------------------------
 project_references: []
   # - id: R1
-  #   identifier: XX-DP-PRODUCT-10-005-RAS
-  #   title: Risk Analysis.
+  #   identifier: XX-DP-PRODUCT-10-005-RAR      # == documents.rar.identifier
+  #   title: Risk Analysis Report.
+
+# -----------------------------------------------------------------------------
+# Literature and standard references — the References section of the SRS and
+# SDD. Every clinical threshold and every algorithm quoted by an item names its
+# source through the item's `references:` id list; an id used by an item and
+# absent here, or an entry no item uses, is a lint finding.
+# -----------------------------------------------------------------------------
+references: []
+  # - id: DEFUSE3
+  #   citation: "Albers GW et al. Thrombectomy for Stroke at 6 to 16 Hours with Selection by Perfusion Imaging. N Engl J Med. 2018;378(8):708-718."
+  # - id: OSVD
+  #   citation: "Wu O et al. Tracer arrival timing-insensitive technique for estimating flow in MR perfusion-weighted imaging using singular value decomposition with a block-circulant deconvolution matrix. Magn Reson Med. 2003;50(1):164-174."
+
+# -----------------------------------------------------------------------------
+# Unresolved anomalies (Enhanced documentation level) — the appendix every
+# deliverable exports, built from: the known defects listed here, every TC
+# bound as PassedWithXfail / Skipped / PassedWithSkips, every risk item with
+# `residual_acceptable: false`, and the `## Open actions` section of the
+# decision record. One row each: id, description, owner, target release,
+# risk link. The internal open-points register (`## Open questions`,
+# markers) is a different list and is exported only with `--internal`.
+# -----------------------------------------------------------------------------
+anomalies:
+  decision_record: null                 # the MAP item whose `## Open actions` feed the appendix, e.g. MAP-DECISION-002
+  known_defects: []
+    # - id: DEF-001
+    #   description: "The report page prints a truncated locale name for two of the shipped locales."
+    #   owner: "[role or workstream]"
+    #   target_release: V1.1.0
+    #   risk_link: RSK-XXX-NNN            # or null with the reason in `description`
 
 # -----------------------------------------------------------------------------
 # External resources — QMS-managed files inlined instead of a section of

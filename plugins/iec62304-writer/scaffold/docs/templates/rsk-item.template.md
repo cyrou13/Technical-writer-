@@ -16,7 +16,8 @@ risk_category: Design          # Design | Production | Usability
 software_function: [TODO]      # high-level function affected, e.g. "perfusion map computation"
 software_item: [TODO]          # module / file path contributing to the hazard
 
-# ISO 14971 §C.2 — chain of causation
+# ISO 14971 §C.2 — chain of causation. The hazard is the potential source of harm as it exists in the released
+# software — never the pre-control state ("nothing is pinned yet"), never a person or a host name.
 hazard: [TODO potential source of harm]
 initiating_causes: |
   - [TODO cause 1]
@@ -28,7 +29,8 @@ foreseeable_sequence: |
 hazardous_situation: [TODO circumstance of exposure]
 harm: [TODO envisaged damage]
 
-# Initial risk estimate (before mitigation)
+# Initial risk estimate (before mitigation) — on the scales DEFINED in dt-config.yaml
+# `classification.severity_definitions` / `probability_definitions` (harm-based, ISO 14971 Annex C)
 severity: Negligible           # Negligible | Minor | Serious | Critical | Catastrophic
 probability: Remote             # Improbable | Remote | Occasional | Probable | Frequent
 risk_level: Low                 # Low | Medium | High (qualitative, computed from the matrix)
@@ -37,10 +39,13 @@ acceptable: true                # true if no mitigation is needed
 # Risk control hierarchy — ISO 14971 §7.2
 # inherent_design        : eliminate the hazard at design time (preferred)
 # protective_measure     : add a barrier / check that prevents harm
-# information_for_safety : warn the user in the IFU / labeling
+# information_for_safety : warn the user in the IFU / labeling — on its own it is NOT creditable risk
+#                          reduction: the residual index stays at the initial index unless an engineering
+#                          control also applies
 control_hierarchy: inherent_design
 
-# Residual risk (after mitigation) — re-evaluated once controls are in place
+# Residual risk (after mitigation) — re-evaluated once controls are in place. A residual accepted with an
+# UNCHANGED index (same severity, same probability) requires a stated rationale in `## Residual risk justification`.
 residual_probability: Improbable
 residual_severity: Negligible
 residual_risk_level: Low
@@ -58,10 +63,10 @@ links:
   parent: []
 ---
 
-<!-- Exported (risk analysis). Normative sections below state the risk as currently assessed. No dates, no "re-assessed on", no markers. -->
+<!-- Exported (risk analysis). Normative sections below state the risk as currently assessed. No dates, no "re-assessed on", no markers, no person or host name, no issue number. -->
 ## Hazard
 
-[TODO the hazard, anchored in the code or the device behaviour (ISO 14971 §3.2)]
+[TODO the hazard as it exists in the released software (ISO 14971 §3.2) — describe the source of harm, not the state before the controls]
 
 ## Initiating causes
 
@@ -77,17 +82,18 @@ links:
 
 ## Harm
 
-[TODO envisaged damage, as concrete as possible]
+[TODO envisaged damage, as concrete as possible, on the harm definitions of the severity scale]
 
 ## Initial risk justification
 
-[TODO why this severity and this probability; cite evidence]
+[TODO why this severity and this probability, against the harm definitions of dt-config.yaml; cite evidence]
 
+<!-- Exported (RAR, per record). One line per control: the SRS/SDS id, what the control does, and its tier. The formal controls are the items whose `links.mitigates` names this ID; the exporter prints each control's title and the status of the TC bound to it — a control's evidence is that bound TC status, nothing else. State the chosen `control_hierarchy` and why no higher tier is practicable. -->
 ## Risk controls
 
-[TODO informal list of intended controls; the formal controls are the SRS/SDS/TC items whose `links.mitigates` names this ID. State the chosen `control_hierarchy` and why no higher tier is practicable.]
+- SRS-XXX-NNN — [TODO what the control does] (tier: [TODO inherent_design | protective_measure | information_for_safety])
 
-<!-- Exported. The residual argument stays here, undated. If the argument was revised, the revision note goes to History. -->
+<!-- Exported (RAR, per record). The residual argument stays here, undated: why the index moved (or, if unchanged, why the risk is accepted anyway). If the argument was revised, the revision note goes to History. -->
 ## Residual risk justification
 
 [TODO why the residual risk is acceptable after the controls]

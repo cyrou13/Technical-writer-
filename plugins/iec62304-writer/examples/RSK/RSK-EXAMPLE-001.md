@@ -73,20 +73,24 @@ session. Initial risk `Medium`, not acceptable without a control.
 
 ## Risk controls
 
-- Cryptographic generation of `state` with the declared minimum entropy.
-- Strict comparison on the callback between the received `state` and the
-  one stored server-side for the pre-session.
-- PKCE with the `S256` method in addition.
+- SRS-EXAMPLE-001 — `state` is generated from a cryptographic source with
+  at least `oauth_state_min_entropy` (256 bit), stored server-side and
+  compared strictly on the callback; PKCE with the `S256` method in
+  addition (tier: inherent_design — the hazard is removed from the
+  design, so no lower tier is needed).
+- SDS-EXAMPLE-001 — the module binds the stored `state` to the
+  pre-session that started the flow (tier: inherent_design).
 
-The formal controls are the items whose `links.mitigates` names this ID:
-SRS-EXAMPLE-001, SDS-EXAMPLE-001 and TC-EXAMPLE-001.
+TC-EXAMPLE-001 verifies SRS-EXAMPLE-001; its bound status is the
+evidence of the control, printed by the RAR next to the SRS.
 
 <!-- Exported. The residual argument stays here, undated. A revision of the argument is noted in History. -->
 ## Residual risk justification
 
 With a cryptographic `state` bound to the pre-session and verified on the
-callback, a forged callback cannot be validated; the residual probability
-is `Improbable` and the residual risk `Low`.
+callback, a forged callback cannot be validated: the probability moves
+from `Remote` to `Improbable` (severity unchanged, `Serious`, since the
+harm is the same if the control fails) and the residual risk is `Low`.
 
 <!-- Internal, never exported. -->
 ## Notes

@@ -13,9 +13,10 @@ attacker: external_unauth              # external_unauth | external_auth | inter
 asset: [TODO threatened asset]
 likelihood: Low                        # Low | Medium | High
 impact: Low                            # Low | Medium | High
-risk_level: Low                        # Low | Medium | High (3x3 matrix, skill cyber-risk-analysis)
+risk_level: Low                        # Low | Medium | High (3x3 matrix, skill cyber-risk-analysis) — one matrix, applied the same way on every THR
 acceptable: true                       # before mitigation
-residual_acceptable: true              # after mitigation
+residual_risk_level: Low               # Low | Medium | High after the controls
+residual_acceptable: true              # after mitigation; false requires the acceptance condition in `## Residual`
 
 # CIA triad (IEC 81001-5-1 + IEC TR 60601-4-5) — severity per dimension
 confidentiality_severity: n/a          # n/a | Low | Medium | High
@@ -27,7 +28,7 @@ residual_confidentiality_severity: n/a
 residual_integrity_severity: n/a
 residual_availability_severity: n/a
 
-# Cybersecurity architecture view this threat is drawn on (docs/dt-clinical-context.md anchors)
+# Cybersecurity architecture view this threat is drawn on (docs/dt-clinical-context.md anchors). All four views are required by the SDD export.
 architecture_view: security-global-view   # security-global-view | security-multi-patient-view | security-updateability-view | security-use-case-views
 source:
   - [TODO path/to/file]
@@ -36,27 +37,32 @@ links:
   triggers: []                         # safety RSK IDs triggered if exploited
 ---
 
-<!-- Exported (cyber risk analysis). Normative sections state the threat as currently assessed. No dates, no markers, no CVE speculation. -->
-## Threat
+<!-- Exported (cyber risk analysis, SDD threat records). Normative sections state the threat as currently assessed. No dates, no markers, no CVE speculation, no OTS version. -->
+## Threat description
 
-[TODO the threat, anchored in the code or in a dependency of docs/ots.yaml]
+[TODO what the attacker achieves and against which asset, anchored in the code or in a component of docs/ots.yaml — "an attacker who controls the input series makes the decoder allocate unbounded memory and starves the host"]
 
-## Threatened asset
+<!-- Exported. The entry interface, the attacker position and trust boundary crossed, and every precondition the attack needs (access, a prior failure, a configuration). -->
+## Attack path and preconditions
 
-[TODO asset compromised and the nature of the compromise]
+[TODO entry interface → boundary crossed → what must already hold → the step that compromises the asset]
 
-## Exploitation vector
-
-[TODO how the attacker exploits, from which position and trust boundary]
-
+<!-- Exported. Why this likelihood and this impact, with the matrix result. -->
 ## Level justification
 
 [TODO why this likelihood, this impact]
 
-## Expected controls
+<!-- Exported. The controls are REQUIREMENTS: SRS ids (and SDS ids for a design constraint), one line each, stating what the control does. A TC id is verification of a control and is never listed as a control; the exporter prints each control's bound TC status next to it. -->
+## Controls
 
-- [TODO informal list; formal controls are the SRS/SDS/TC items whose `links.mitigates` names this ID]
+- SRS-XXX-NNN — [TODO what the control does]
 
+<!-- Exported. The residual level after the controls and the condition under which it is accepted; when `residual_acceptable: false`, the condition that would make it acceptable and who owes it. -->
+## Residual
+
+Residual level `[TODO Low | Medium | High]` — accepted because [TODO condition], or not accepted until [TODO condition] (owner: [TODO]).
+
+<!-- Exported. -->
 ## CIA impact analysis
 
 ### Confidentiality

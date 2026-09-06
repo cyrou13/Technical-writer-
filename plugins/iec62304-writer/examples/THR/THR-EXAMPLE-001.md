@@ -15,6 +15,7 @@ likelihood: Medium
 impact: High
 risk_level: High
 acceptable: false
+residual_risk_level: Low
 residual_acceptable: true
 confidentiality_severity: High
 integrity_severity: Medium
@@ -31,25 +32,23 @@ links:
   triggers: []
 ---
 
-<!-- Exported (cyber risk analysis). Normative sections state the threat as currently assessed. No dates, no markers, no CVE speculation. -->
-## Threat
+<!-- Exported (cyber risk analysis, SDD threat records). Normative sections state the threat as currently assessed. No dates, no markers, no CVE speculation. -->
+## Threat description
 
 Script injection in the front end — an unescaped user comment, a raw
 HTML insertion, or a compromised front-end component — lets an attacker
 run script in the application's context and steal the session cookie.
+Without the HttpOnly flag the cookie is readable from script; with it,
+the attacker can still drive the session from the victim's browser.
 
-## Threatened asset
+## Attack path and preconditions
 
-The session cookie. Without the HttpOnly flag it is readable from
-script; with it, the attacker can still drive the session from the
-victim's browser.
-
-## Exploitation vector
-
-An unauthenticated Internet attacker inserts a payload through a user
-field displayed verbatim, or exploits a vulnerable front-end component
-listed in the OTS registry. The crossing is the browser-to-application
-boundary of the global view.
+Entry interface: the HTTPS user interface (browser-to-application
+boundary of the global view). The attacker is an unauthenticated
+Internet user. Preconditions: a user field is rendered without escaping,
+or a front-end component of the OTS registry carries an injection
+defect. Path: the attacker stores the payload → a victim with an open
+session renders the page → the script reads or drives the session.
 
 ## Level justification
 
@@ -57,16 +56,23 @@ Likelihood `Medium` — script injection remains a common defect and the
 surface is public. Impact `High` — session theft is an account takeover.
 Matrix → `risk_level: High`, not acceptable without controls.
 
-## Expected controls
+## Controls
 
-- Session cookie HttpOnly + Secure + SameSite=Lax.
-- Strict content security policy (`script-src 'self'`, no inline
-  scripts).
-- Systematic escaping in the front end (framework default plus lint).
-- Dependency audit of the front-end components.
+- SRS-EXAMPLE-001 — the session cookie is set HttpOnly, Secure and
+  SameSite=Lax on a successful callback.
+- SDS-EXAMPLE-001 — the front end serves a content security policy of
+  `script-src 'self'` with no inline script, and escapes every rendered
+  user field.
 
-The formal controls are the items whose `links.mitigates` names this ID:
-SDS-EXAMPLE-001 and TC-EXAMPLE-001.
+TC-EXAMPLE-001 verifies the first control; it is verification, not a
+control, and the exporter prints its bound status next to the SRS.
+
+## Residual
+
+Residual level `Low` — accepted because a stolen cookie cannot be read
+from script and an injected script cannot load under the policy; the
+remaining path (driving the session from the victim's browser) requires
+a policy bypass and ends with the session lifetime.
 
 ## CIA impact analysis
 
@@ -84,8 +90,10 @@ Not affected.
 
 Example item shipped with the scaffold. It shows the safety / cyber
 separation: the same `auth/oauth` module mitigates a safety RSK (callback
-CSRF) and a cyber THR (XSS) through shared SDS / TC items. CVE / CWE
-references go here, never in the body.
+CSRF) and a cyber THR (XSS) through shared SRS / SDS items, and the four
+exported sections a threat record needs: description, attack path with
+preconditions, controls as requirement ids, residual level with its
+acceptance condition. CVE / CWE references go here, never in the body.
 
 <!-- Internal, never exported. `[GAP-CYBER]` markers allowed here and in History only. -->
 ## Open questions

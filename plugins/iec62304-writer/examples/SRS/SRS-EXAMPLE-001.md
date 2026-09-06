@@ -17,7 +17,9 @@ parameters:
     unit: bit
     settable: false
     interval: null
-    source: src/auth/oauth.ts
+    source: auth.oauth.STATE_MIN_ENTROPY   # a dotted symbol, never a path
+references:
+  - RFC7636
 source:
   - src/auth/oauth.ts
   - src/auth/oauth.test.ts
@@ -47,6 +49,7 @@ Authorization Code flow with the configured identity provider, and
    `state` value and a PKCE code challenge.
 2. The `state` value has at least `oauth_state_min_entropy` (256 bit) of
    entropy, is stored server-side and is verified on the callback.
+   The PKCE code challenge uses the `S256` method [RFC7636].
 3. A successful callback sets a session cookie flagged HttpOnly and
    Secure.
 4. A failed identity-provider exchange redirects the user to the login
@@ -57,8 +60,11 @@ Authorization Code flow with the configured identity provider, and
 
 This item is an **example** shipped with the scaffold; delete or replace
 it once real items exist. It shows the contract: `kind` set, the one
-constant declared in `parameters:` and quoted by name, criteria
-numbered, and no path in the exported text (the paths are in `source:`).
+constant declared in `parameters:` with a dotted `source` and quoted by
+name, the literature reference named through `references:` (the id
+resolves in `dt-config.yaml: references`), criteria numbered as
+behaviour with a number, and no path in the exported text (the paths
+are in `source:`).
 
 <!-- Internal, never exported. -->
 ## Open questions

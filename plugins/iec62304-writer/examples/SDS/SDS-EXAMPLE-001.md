@@ -15,7 +15,7 @@ parameters:
     unit: bit
     settable: false
     interval: null
-    source: src/auth/oauth.ts
+    source: auth.oauth.STATE_MIN_ENTROPY   # a dotted symbol, never a path
 source:
   - src/auth/oauth.ts
 links:
