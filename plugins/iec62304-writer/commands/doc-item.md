@@ -1,5 +1,5 @@
 ---
-description: Crée ou met à jour un item de documentation (SRS/SDS/TC/RSK) avec frontmatter conforme. Usage — /doc-item SRS-AUTH-001 [titre]
+description: Creates or updates a single documentation item (MAP/SRS/SDS/TC/RSK/PRSK/THR/USC/URSK) from the templates, with a conforming frontmatter. Usage — /doc-item SRS-AUTH-001 [title]
 ---
 
 ## OUTPUT LANGUAGE — STRICT
@@ -11,41 +11,47 @@ in **English**, regardless of the user's conversational language or
 any global `CLAUDE.md` instruction. Conversational replies to the user
 MAY follow the user's language; written outputs are English-only.
 
-L'utilisateur veut créer ou éditer **un seul** item de documentation.
+The user wants to create or edit **one** documentation item.
 
-`$ARGUMENTS` est attendu sous la forme : `<ID> [titre éventuel]`.
+`$ARGUMENTS` is `<ID> [optional title]`.
 
-## Étapes
+## Steps
 
-1. Parser l'argument :
-   - extraire `ID` (forme `<CAT>-<DOMAIN>-<NNN>`),
-   - le reste = titre éventuel.
+1. Parse: `ID` (form `<CAT>-<DOMAIN>-<NNN>`, or the `id_format` of
+   `dt-config.yaml`), the rest is the title.
 
-2. Si `ID` mal formé → expliquer le format à l'utilisateur (cf. skill
-   `items-store`) et s'arrêter.
+2. Malformed `ID` → explain the format (skill `items-store`) and stop.
 
-3. Déterminer la catégorie depuis le préfixe (`SRS`, `SDS`, `TC`, `RSK`).
+3. Category from the prefix: `MAP`, `SRS`, `SDS`, `TC`, `RSK`, `PRSK`,
+   `THR`, `USC`, `URSK`.
 
-4. Cible : `docs/items/<CAT>/<ID>.md`.
+4. Target: `docs/items/<CAT>/<ID>.md`.
 
-5. Si le fichier existe → l'ouvrir en lecture, proposer la modification
-   demandée à l'utilisateur, appliquer en respectant les règles
-   d'idempotence (`items-store`).
+5. File exists → read it, propose the requested change, apply it under
+   the `items-store` idempotence rules: `updated` set, `version` bumped,
+   `Approved` → `Draft`, one line added at the top of `## History`
+   (create the section at the end if absent; rename a legacy
+   `## Changelog` header to `## History` while there). **Never write a
+   date, a decision or a change note into a normative section**; never
+   turn a numbered criterion into a tick-box.
 
-6. Sinon, **créer** en partant du template
-   `docs/templates/<cat-lower>-item.template.md` et préremplir :
-   - `id`, `title`, `created`, `updated` (date du jour),
-   - `version: 1.0.0`, `status: Draft`,
-   - `source:`, `links:` vides,
-   - corps : sections du template, `[TODO]` partout où l'utilisateur
-     doit compléter.
+6. Otherwise **create** from `docs/templates/<cat-lower>-item.template.md`
+   (keep the per-section header comments) and pre-fill:
+   - `id`, `title`, `created`, `updated` (today),
+   - `version: 1.0.0` (or `baseline_version` in design mode),
+     `status: Draft`,
+   - SRS: `kind` (ask if not inferable), `parameters: []`,
+   - `source:`, `links:` empty,
+   - body: template sections, `[TODO]` only in `## Notes` and
+     `## Open questions`, a first `## History` line.
 
-7. Afficher le chemin créé et les sections à compléter.
+7. Show the path and the sections to complete; remind that every
+   constant quoted must be declared in `parameters:` and that
+   third-party components are named by their `docs/ots.yaml` key.
 
-## Règles
+## Rules
 
-- Ne JAMAIS réutiliser un ID déjà attribué (même si le fichier a été
-  supprimé). Vérifier dans tout `docs/items/` qu'aucun item n'a cet ID
-  en frontmatter.
-- Ne pas créer le dossier de catégorie sans confirmation si la catégorie
-  n'existe pas encore (ex. première fois qu'on crée un RSK).
+- **Never reuse** an allocated ID, even if the file was deleted: check
+  every `docs/items/**` frontmatter.
+- Do not create a category folder without confirmation when it does not
+  exist yet.

@@ -1,10 +1,13 @@
 ---
 id: URSK-XXX-NNN
-title: [TODO] short title ≤ 80 characters
+title: [TODO] short title, 80 characters or fewer
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+reviewed: null            # last date the item was READ against the source it cites; set by the reviewer, never by a tool
+owner: null               # who owes the open work on this item (a workstream, a role, a person)
+target_release: null      # the release the open work is owed for, e.g. V1.0.0
 use_scenario: USC-XXX-NNN              # parent USC
 use_error: [TODO erroneous user action or inaction]
 hazard: [TODO potential source of harm]
@@ -22,14 +25,14 @@ links:
   triggers: []             # safety RSK IDs triggered if the error occurs
 ---
 
+<!-- Exported (usability analysis). Normative sections state the risk as currently assessed. No dates, no markers. -->
 ## Use error
 
 [TODO precise description of the user action or inaction]
 
 ## Conditions favoring the error
 
-[TODO what makes the error more likely: confusable labels, ambiguous
-default, fatigue, multi-patient context, etc.]
+[TODO confusable labels, ambiguous default, fatigue, multi-patient context]
 
 ## Hazard and harm
 
@@ -44,11 +47,20 @@ default, fatigue, multi-patient context, etc.]
 (ISO 14971 hierarchy: elimination > technical measure > information.)
 
 - [TODO control 1]
-- [TODO control 2]
 
-The formal controls live in the SRS/SDS/TC items whose
-`links.mitigates: [<this ID>]`.
+The formal controls are the SRS/SDS/TC items whose `links.mitigates` names this ID.
 
+<!-- Internal, never exported. -->
 ## Notes
 
-[TODO context, usability study references, user training]
+[TODO usability study references, user training]
+
+<!-- Internal, never exported. `[GAP-USE]` markers allowed here and in History only. -->
+## Open questions
+
+- [TODO]
+
+<!-- Internal, never exported. Dated re-assessments and change notes, newest first. -->
+## History
+
+- YYYY-MM-DD v1.0.0 — created.
