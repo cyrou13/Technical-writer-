@@ -30,13 +30,21 @@ the dependency manifests (`pyproject.toml`, `requirements*.txt`,
    point) and mention the others in `## Design notes`.
 4. Produce the architecture views `SDS-ARCH-*` with Mermaid diagrams
    when they carry more than three nodes.
-5. Create or update **`docs/ots.yaml`** (schema in `sds-generate`): one
-   entry per third-party component the code imports or the image ships,
-   with the ten fields. Unknown `supplier`, `eol_status` or `sbom_ref` →
-   `"[TODO]"` in the registry (the registry is internal until the SDD
-   export, where SL-3 refuses a TODO). Reference every component in
-   `interfaces.depends_on` by its `component` key. Never write a version
-   or a supplier in an item body.
+5. Create or update **`docs/ots.yaml`** (schema and rules in
+   `sds-generate`): **one row per installed component at its exact
+   version** from the locks, with the ten fields. When pip and conda
+   both carry a name, the pip row is the component and `supersedes`
+   says so. `functions_used` comes from `grep -rn "^from <pkg>\|^import
+   <pkg>"` over the device code — never from what the package could do.
+   `hazard_review` says what the scanner does not cover (pip-audit does
+   not scan conda or OS packages) and, for `safety_relevant: false`,
+   the reason after the dash. The base image is one entry. Fill
+   `control_procedure` and `hazard_contribution`. Unknown `supplier`,
+   `eol_status` or `sbom_ref` → `"[TODO]"` in the registry (the
+   registry is internal until the SDD export, where SL-3 refuses a
+   TODO). Reference every component in `interfaces.depends_on` by its
+   `component` key. Never write a version, a supplier or a **second
+   inventory** in an item body or a clinical-context anchor.
 6. Fill the six required sections of **`docs/dt-clinical-context.md`**
    (scaffolded as empty headed sections by `/doc-init`):
    `general-system-architecture`, `run-states`,
@@ -50,12 +58,20 @@ the dependency manifests (`pyproject.toml`, `requirements*.txt`,
 
 ## Design vs Design notes vs History
 
-- `## Design` — the design **as built**: data flow, algorithm, states,
-  error handling, present tense. Exported inline.
-- `## Design notes` — **why**: alternatives discarded, limits of the
-  approach. Exported once, in the SDD rationale appendix. No dates.
+- `## Design` — the **normative detailed design**: algorithm (formula,
+  steps, model), data (structures, units), the interfaces realised,
+  every threshold as a number owned here or by name from the registry;
+  the architecture chart. Present tense. Exported inline. A reviewer
+  must be able to re-implement the module from it — "features named, no
+  formula" (a motion-correction module without its algorithm and bounds,
+  a QC module without its thresholds) is a defect you do not ship.
+- `## Design notes` — **why**, and only why: alternatives discarded,
+  limits of the approach. Exported once, in the SDD rationale appendix.
+  No dates. A rule, an allowlist, an interval table, a containment
+  contract or a chart found here is moved to `## Design`.
 - `## History` — **when**: dated change and decision notes. Never
   exported.
+- `## Responsibility` — what, in 1–3 sentences; no rationale.
 
 "Changed from sSVD to oSVD after the noise sweep" is History; "oSVD was
 preferred to sSVD because the oscillation index is noise-stable" is
@@ -64,9 +80,22 @@ index `osvd_oi` (0.03)" is Design.
 
 ## Parameters
 
-A constant quoted in an SDS is declared in `parameters:` with the same
-schema as an SRS. If the SRS already declares the name, reuse name and
-value; a conflicting value is reported, not declared.
+A constant quoted in an SDS — a regularisation floor, an ingest bound, a
+resource limit, a default — is **owned** in `parameters:` with the same
+schema as an SRS (`source` prose or dotted, never a path; list values as
+lists). If an SRS already owns the name, reference it by name in the
+text and do not redeclare it; a conflicting value is reported, not
+declared. SDD §3.8 renders the joined registry: a constant that lives
+only in your prose is not in it.
+
+## One truth
+
+One declared-environment table (every environment variable the software
+reads), one run-state / exit-status table, one statement of each
+behaviour — in one item or one anchor, referenced everywhere else. When
+you meet the same fact stated twice with two numbers (25 vs 28 fields,
+four vs eight variables), read the code, keep one, and reference it.
+`references:` names the source of every algorithm.
 
 ## Granularity
 
@@ -92,7 +121,12 @@ value; a conflicting value is reported, not declared.
 
 - IDs created / updated / unchanged;
 - coverage: how many SRS have at least one implementing SDS;
-- `docs/ots.yaml`: components registered, fields left `[TODO]`;
+- `docs/ots.yaml`: components registered at exact version, rows with
+  `supersedes`, fields left `[TODO]`, second inventories removed from
+  prose;
+- thin `## Design` sections you could not complete from the code
+  (named, with what is missing: algorithm / data / thresholds);
+- single-truth conflicts resolved (which number was kept and where);
 - `dt-clinical-context.md`: which of the six sections are filled, which
   remain empty;
 - gaps reported.

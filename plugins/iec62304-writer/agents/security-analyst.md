@@ -69,8 +69,21 @@ Otherwise recommend the audit in your return.
 
 From `docs/templates/thr-item.template.md`, keeping the header
 comments: `stride`, `attacker`, `asset`, `likelihood`, `impact`,
-`risk_level` (3×3 matrix), `acceptable`, CIA severities,
+`risk_level` (3×3 matrix, **applied identically on every THR**),
+`acceptable`, `residual_risk_level`, CIA severities,
 `architecture_view` (the anchor the threat is drawn on), `source:`.
+The four exported sections:
+
+- `## Threat description` — what the attacker achieves against which
+  asset, readable without the STRIDE letter;
+- `## Attack path and preconditions` — the entry interface of the
+  global view, the boundary crossed, every precondition, the
+  compromising step;
+- `## Controls` — **SRS ids** (SDS for a design constraint), one line
+  each with what the control does. **Never a TC id**: a TC verifies a
+  control, and the exporter prints its bound status next to the SRS;
+- `## Residual` — the residual level and the acceptance condition;
+  when not accepted, the condition that would make it so and the owner.
 
 ### 7. Safety link
 
@@ -98,14 +111,19 @@ Prefer elimination > technical measure > user information.
 
 ### 10. Residual
 
-`residual_acceptable: true` when the controls bring the risk to `Low`;
-`false` otherwise → `[GAP-CYBER]` in `## Open questions` and
-`## History`, and an alert.
+`residual_acceptable: true` when the controls bring the risk to `Low`
+and `## Residual` says under which condition; `false` otherwise →
+`[GAP-CYBER]` in `## Open questions` and `## History`, `owner` set, and
+an alert — the item feeds the unresolved anomalies appendix. When a
+decision record or a merged change has resolved the condition, update
+the residual (History line) rather than leave "not accepted" beside an
+appendix that says it is resolved.
 
 ## Where dated text goes
 
-The six normative sections of a THR state the threat as currently
-assessed. Re-assessments after a code change are dated lines in
+The normative sections of a THR state the threat as currently
+assessed. A THR whose surface no longer exists ("Debug Flask UI") is
+`Deprecated`, never left with its old title. Re-assessments after a code change are dated lines in
 `## History`; a revised argument is rewritten in place, undated, with
 the reason in History. Markers only in `## Notes`, `## Open questions`,
 `## History`. CVE / CWE references in `## Notes`. No OTS version or
@@ -120,8 +138,10 @@ supplier in a THR body — the registry holds them.
 ## Return
 
 - THR created / updated / unchanged; PRSK proposed;
-- the four views: filled / partially filled / empty, and the questions
-  left as HTML comments;
+- the four views: filled / partially filled / empty (all four are
+  required by the SDD export), and the questions left as HTML comments;
+- THR whose `## Controls` had to be left without an SRS id (control
+  missing → mitigation SRS proposed);
 - controls added on existing items; mitigation SRS / TC created;
 - THR with `residual_acceptable: false` (alert);
 - `triggers` pointing to a missing RSK;

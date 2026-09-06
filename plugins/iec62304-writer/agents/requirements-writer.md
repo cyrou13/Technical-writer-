@@ -45,10 +45,25 @@ the orchestrator sees an empty kind.
 Every literal in the item — threshold, limit, series number, timeout,
 default — is a `parameters:` entry with `name`, `value`, `unit`,
 `settable`, `interval`, `source`. Before declaring a name, check whether
-it exists in the store; reuse the name **and the value**. If the code
-holds a value different from the declared one, do not declare a second
-value: write the conflict in `## Open questions` and report it. Quote
-the parameter in the text as `` `name` (value unit) ``.
+it exists in the store; if it does, **another item owns it** — quote it
+by name in your text and do not redeclare it. If the code holds a value
+different from the declared one, do not declare a second value: write
+the conflict in `## Open questions` and report it. Quote the parameter
+in the text as `` `name` (value unit) ``. `source` is prose or a dotted
+symbol (`ctperfusion.qc.frames.MIN_FRAMES`), never a path — the table is
+rendered in SRS §4.1. A list value is a YAML list. **Every parameter you
+declare is described in this requirement's `## Description` or
+criteria**: a frozen constant no requirement explains is a defect you
+report.
+
+## References
+
+Every clinical threshold and every algorithm the requirement quotes
+names its source: an id of `dt-config.yaml: references` in the item's
+`references:` list, quoted as `[ID]` in the text. If the entry does not
+exist, add it to `dt-config.yaml` with its citation (a paper, a
+standard, a guidance) — never a URL to a competitor — or leave a
+`[TODO]` in `## Open questions` when you cannot identify the source.
 
 ## Normative text — what you may and may not write
 
@@ -56,9 +71,23 @@ In `## Description` and `## Acceptance criteria`:
 
 - present tense, `shall`, one behaviour per sentence, a measurable
   criterion per numbered line, the number and unit stated;
-- **never** a date, a decision, "re-assessed", "since v…", a commit
-  hash, a competitor name, a code path, a test path, a function name as
-  subject, a tick-box, a `[TODO`/`[DRAFT`/`[GAP-` marker.
+- a criterion is **behaviour with a number** — never a status
+  ("confirmed by RAQA"), a TC / SDS / decision id, an "engineering
+  action", a "placeholder until …", "stays an expected failure", a
+  sentence about the module's source; a tolerance is the number the test
+  asserts, never "about", "~", "small margin", "non-worse";
+- a **measurement** ("peak 20.6 GB", "about 25 s") goes to `## Notes`;
+  the criterion is the **bound** ("at most `max_rss` (24 GB)");
+- **one glossary term per concept**, verbatim from the `## glossary`
+  anchor of `docs/dt-clinical-context.md`; when the labeling and an
+  existing item disagree, the labeling's term wins and you report the
+  other item;
+- **never** a date, a decision, "re-assessed", "since v…", "today",
+  "now comes from", a commit hash, an issue number, a person or host
+  name, a competitor name, a code path, a test path, a function name as
+  subject, a tick-box, a `[TODO`/`[DRAFT`/`[GAP-` marker; when you
+  remove a hash / issue / competitor reference, remove the **whole
+  parenthetical or clause**, never leaving "(open issue".
 
 Everything else has a place:
 
@@ -83,10 +112,22 @@ Align with existing domains; create one only when none fits.
 - **Too fine**: "The system shall call `bcrypt.compare`."
 - **Too coarse**: "The system shall manage users."
 
+## Labeling vs specification — report, never edit
+
+Read `intended-use` and `warnings-and-precautions` in
+`docs/dt-clinical-context.md` before writing. A warning that names an
+output your requirements forbid, an intended use that omits the
+indication the thresholds encode, a configuration the labeling names
+that no requirement specifies: **do not edit the labeling and do not
+bend the requirement**. Put a line in `## Open questions` and report it
+in your return under a `DECISION` heading for the product owner / RAQA.
+
 ## Rules
 
 - No invention. Not inferable from the code → `[TODO]` in `## Notes`
   and a line in `## Open questions`.
+- One behaviour, one requirement: a requirement that restates another
+  ("MAPS-001 criterion 1 restates PERF-002") references it instead.
 - `verification:` consistent with what is testable: `Test` when test
   code exists, `Inspection` for what is checked by reading, `Analysis`
   for formal derivations, `Demo` for interactive checks.
@@ -99,5 +140,9 @@ Align with existing domains; create one only when none fits.
 
 - items created / updated / unchanged, IDs allocated;
 - count per `kind`, and which kinds are empty;
-- parameters declared, and any name/value conflict found;
+- parameters declared, parameters referenced from another owner, and
+  any name/value conflict or undescribed parameter found;
+- `references:` ids used, and entries added to `dt-config.yaml`;
+- terminology conflicts found against the glossary / labeling;
+- `DECISION` findings (labeling vs specification);
 - `[TODO]` gaps.

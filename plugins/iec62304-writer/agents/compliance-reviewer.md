@@ -67,6 +67,57 @@ If the exporters are absent, apply the rules by hand and say so
   TC the coverage figures include.
 - **SL-6** the six required anchors of `dt-clinical-context.md` present
   with non-placeholder content.
+- **SL-8** `grep -rn "^    source:" docs/items/SRS docs/items/SDS` under
+  `parameters:` — a `/` or a `.py`/`.ts`/`.yaml` suffix is a path;
+  names declared by two items; declared names absent from the owner's
+  `## Description` / criteria; list values written as strings.
+- **SL-9** every `references:` id of an item is an `id` of
+  `dt-config.yaml: references`; SRS quoting a clinical threshold or an
+  algorithm with an empty `references:`.
+- **SL-10** `documents.{srs,sdd,rar,stp,stdr,str}` set, distinct, no
+  `[TODO]`; each `project_references` entry naming one of them carries
+  the same identifier.
+- **SL-11** `classification.severity_definitions` /
+  `probability_definitions` present, one harm-based sentence per level
+  used; risk items with `residual_severity == severity` and
+  `residual_probability == probability` whose `## Residual risk
+  justification` is empty or a placeholder; items whose only control is
+  `information_for_safety` with a lowered residual.
+- **SL-12** `docs/ots.yaml`: duplicate `component` names, range pins,
+  empty `functions_used` on `safety_relevant: true`, `hazard_review`
+  without a reason after the dash, no base-image row, a second
+  inventory in item prose (`grep -rn "==\|>=" docs/items/SDS`).
+- **SL-13** THR bodies: the four sections present; a TC id under
+  `## Controls`; `## Residual` without a level; the four `security-*`
+  anchors non-empty.
+- **SL-14** TC with `steps` of one entry or containing "pytest";
+  `expected` count ≠ test functions of `test_id`; `PassedWithSkips` /
+  `PassedWithXfail` / `Skipped` cases absent from the anomalies
+  appendix; no `type: System` TC for a benchmark / release gate run.
+- **TL-11** criteria / expected results carrying "confirmed",
+  "recorded", "expected failure", "placeholder", "engineering action",
+  a TC / SDS / decision id as subject, "about", "roughly", "~",
+  "small margin", "within tolerance", "non-worse", "measured".
+- **TL-12** `grep -rnE "\((open issue|issue|see|commit)[^)]*$|in issue;" docs/items/`.
+- **TL-13** the glossary anchor vs the terms used for one concept
+  across SRS text and the labeling anchors (list the variants).
+
+## 1b. Decision-level findings (DEC) — first section of the report
+
+Read `intended-use` and `warnings-and-precautions` in
+`docs/dt-clinical-context.md` against the SRS:
+
+- **DEC-1** a warning names an output the requirements forbid; the
+  intended use omits the indication the thresholds encode (stroke cuts
+  with no stroke indication, an oxygenation output with "no claim");
+  the labeling uses the predicate-equivalence phrasing the SRS bans.
+- **DEC-2** the labeling names a configuration or an interface no
+  requirement specifies.
+
+These are contradictions between approved labeling and the
+specification. Report them **at DECISION level, for the product owner /
+RAQA, above the gate offenders**; never propose a wording that edits the
+labeling, and never treat them as a writer's defect.
 
 ## 2. Class A checklist
 
@@ -90,7 +141,12 @@ If the exporters are absent, apply the rules by hand and say so
   requirement is suspicious).
 
 ### Safety (§7)
-- no RSK / PRSK `severity: Critical | Catastrophic`;
+- the class argument (`classification.record`) lists each RSK / PRSK
+  once with initial and residual severity, none omitted;
+- hazard text describing the pre-control state, a person or a host;
+- controls linked to a hazard whose mechanism they do not address
+  (mis-trace);
+- in class A no RSK / PRSK `severity: Critical | Catastrophic`;
 - every `acceptable: false` risk has ≥ 1 control; every
   `residual_acceptable: false` is listed as blocking;
 - every mitigation SRS has an SDS implementing it and a TC verifying it;
@@ -98,7 +154,10 @@ If the exporters are absent, apply the rules by hand and say so
 
 ### Cyber (IEC 81001-5-1)
 - every `acceptable: false` THR has a control; `residual_acceptable:
-  false` blocking; `risk_level: High` resolved or justified;
+  false` blocking (and listed in the anomalies appendix with an owner);
+  `risk_level: High` resolved or justified; one matrix applied
+  identically (same likelihood × impact → same level on every THR);
+- a THR whose title names a deleted surface;
 - `links.triggers` resolve to existing RSK;
 - STRIDE, attacker, asset, `architecture_view` on every THR;
 - the four security views filled; every OTS entry with
@@ -115,6 +174,12 @@ If the exporters are absent, apply the rules by hand and say so
 
 ```markdown
 # IEC 62304 class A compliance review — <date>
+
+## DECISION — labeling vs specification (product owner / RAQA)
+| Rule | Labeling anchor | Requirement | Contradiction |
+|---|---|---|---|
+| DEC-1 | warnings-and-precautions warning 5 | SRS-CTP-OUTPUTS-009 | warning names CBF_CV / Tmax_SD outputs the SRS forbids |
+…
 
 ## Release gate — offenders (would stop a --release export)
 Gate: run by exporters | applied manually
@@ -148,7 +213,9 @@ Count per rule: DC-1 n, TL-1 n, …
 
 ## Rules
 
-- **Do not edit** items — propose corrections only.
-- Offenders first, then blocking vs non-blocking, then metrics.
+- **Do not edit** items, and never the labeling anchors — propose
+  corrections only; DEC findings get no proposed wording.
+- DECISION findings first, then gate offenders, then blocking vs
+  non-blocking, then metrics.
 - Cite each finding with file path and line.
 - Never report a planned TC as verification coverage.

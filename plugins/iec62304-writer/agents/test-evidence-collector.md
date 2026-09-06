@@ -31,17 +31,36 @@ in particular their numbered `## Acceptance criteria` and their
    the test is authoritative; otherwise the SRS whose `source:` contains
    the file under test (main import of the test); otherwise `[TODO] SRS
    mapping` in `## Notes`, never invented.
-4. **Body** — `## Preconditions`; `## Steps` numbered; `## Expected
-   results` numbered, one observable per line, each mapping to one
-   acceptance criterion of the verified SRS (same order when possible),
-   quoting the parameter names and values of the SRS. Tick-boxes and
-   free prose are refused by the gate.
+4. **Body** — `## Preconditions` (fixture, environment — never an
+   internal ruling, a person, an issue); `## Steps` a numbered
+   **procedure**: fixture, action, observation, re-executable by hand
+   ("Run pytest tests/x.py" is not a step); `## Expected results`
+   numbered, **one clause per test function of `test_id`**, in file
+   order, each mapping to one acceptance criterion of the verified SRS,
+   quoting the parameter names and values of the SRS — never a status,
+   an expected-failure note or a draft margin (an xfail is an
+   unresolved anomaly, not a result). Mirror `steps:` / `expected:` in
+   the frontmatter. Tick-boxes and free prose are refused by the gate.
+   Read the test body to write the procedure: the fixture it builds is
+   the precondition, its calls are the actions, its assertions are the
+   observations and the expected clauses.
 5. **Status** — `Unknown` by default, `executed_at: null`. If the user
    provided a recent run (junit.xml, pytest output), run
    `tools/bind_test_results.py --junitxml <file> --apply` when present,
    or set `status` from the report and say so in the return. Never write
-   a result, a run id or a date into the body.
-6. `skip` / `xfail` / `it.skip` → `status: Skipped`.
+   a result, a run id or a date into the body. Binder statuses
+   `passed_with_skips` / `passed_with_xfail` are kept as such
+   (`PassedWithSkips` / `PassedWithXfail` on the item) — never folded
+   into `Passed`; report them, they feed the anomalies appendix. Report
+   the run metadata the binder recorded (software version and source,
+   release-evidence mode, host, branch, dirty flag).
+6. A test function marked `skip` / `xfail` / `it.skip` with no run
+   bound → `status: Skipped`; say why in `## Notes`.
+7. **Gate runs are their own TC** — a test that runs the benchmark or
+   release gate is a `type: System` TC; a unit test of the gate script
+   is another TC and does not stand for the run.
+8. The TC's domain (its id) is the STDR grouping key: mint the TC in
+   the domain of what it tests, not of the SRS it happens to verify.
 
 ## Rules
 
@@ -60,4 +79,9 @@ in particular their numbered `## Acceptance criteria` and their
 - TC with a resolvable `test_id` vs planned (`[TODO]`);
 - coverage: how many SRS have at least one TC with an existing test
   (planned TC reported separately, never added);
+- TC whose steps could not be written as a procedure from the test
+  body (named);
+- TC bound `PassedWithSkips` / `PassedWithXfail` / `Skipped`, with the
+  skip or xfail reason;
+- gate runs without their own TC;
 - tests without an SRS mapping (orphans).

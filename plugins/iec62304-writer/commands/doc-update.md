@@ -39,13 +39,28 @@ independent):
 Order: `requirements-writer` first, then the two others in parallel. The
 writers are idempotent: they re-read, modify only what needs it, create
 what is missing, and rewrite normative sections **so that they read as
-the present** — every "was / is now" goes to `## History`.
+the present** — every "was / is now" goes to `## History`. When a
+constant moved, the **owner** of the parameter changes its value and the
+referencing items are re-read, never redeclared; when a reference (hash,
+issue, competitor) is stripped, the whole parenthetical goes. A
+labeling-vs-specification contradiction a writer meets is reported as
+`DECISION`, never edited.
+
+### 3b. Test results
+
+If the user provided a junit report, run `tools/bind_test_results.py
+--junitxml <file> --apply`; report the binder statuses including
+`passed_with_skips` / `passed_with_xfail` (never folded into passed) and
+the run metadata (software version + source, release-evidence mode,
+host, branch, dirty). TCs that changed status feed the anomalies
+appendix.
 
 ### 4. Risk re-evaluation
 
 If **any** SRS / SDS / TC changed in step 3, run in sequence
 `risk-analyst`, `security-analyst`, `usability-analyst` (the last only
-if UI components changed). Each re-reads the modified items, checks
+if UI components changed). A control whose bound TC turned `Failed` or
+`Unknown` is an unverified control: the residual argument is revisited. Each re-reads the modified items, checks
 that the existing controls (`links.mitigates`) still hold, updates the
 residual fields when needed, and records the re-assessment as **one
 dated line in `## History` of the risk item** — the normative sections
@@ -83,6 +98,10 @@ Its first section is the release-gate offender list.
 - Partial orphans cleaned: N. Changelog sections renamed: N.
 - Stale items re-processed: N. Coverage gaps created: N.
 - Risk items whose residual changed: N — alert if > 0.
+- Unresolved anomalies: N (known defects / xfail-skip TCs /
+  residual-false items / open actions).
+- **DECISION findings** (labeling vs specification): N — listed, for
+  the product owner / RAQA.
 - **Lint counts** from the review: offenders per rule (DC-*, TL-*,
   SL-*), and whether a `--release` export would pass today.
 - Before / after coverage if the previous `coverage.json` is in git.
