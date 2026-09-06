@@ -45,19 +45,36 @@ controls.
 7. Availability — prolonged outage, silent degradation.
 8. Usability — misleading interface (URSK when a UI exists).
 
-## Scales (class A — simplified)
+## Scales — defined in `dt-config.yaml`, harm-based
 
-| Severity | Definition |
-|---|---|
-| Negligible | transient inconvenience, no consequence |
-| Minor | recoverable data loss, annoyance |
-| Serious | lasting damage (privacy, financial) |
-| Critical | not class A — triggers reclassification B/C |
-| Catastrophic | not class A |
+The scales are **not** in this skill and not in the exporter: they are
+`classification.severity_definitions` and
+`classification.probability_definitions` of `dt-config.yaml`, one
+harm-based sentence per level in ISO 14971:2019 Annex C terms, rendered
+in the RAR methodology section. A names → integers mapping is a defect:
+it lets "regulatory breach" and "neurological injury" share `Serious`
+without anybody having decided so.
 
-Probability: `Improbable` / `Remote` / `Occasional` / `Probable` /
-`Frequent`. Risk level: `Low` / `Medium` / `High`. Any `Medium` or `High`
-that cannot be reduced questions class A.
+```yaml
+classification:
+  severity_definitions:
+    Negligible: inconvenience or temporary discomfort; no medical intervention
+    Minor: temporary injury or impairment not requiring professional medical intervention
+    Serious: injury or impairment requiring professional medical intervention
+    Critical: permanent impairment or life-threatening injury
+    Catastrophic: patient death
+  probability_definitions:
+    Improbable: not expected in the lifetime of the installed base
+    Remote: …
+```
+
+Levels: severity `Negligible` … `Catastrophic`; probability
+`Improbable` / `Remote` / `Occasional` / `Probable` / `Frequent`; risk
+level `Low` / `Medium` / `High` from one matrix. In class A, `Critical`
+and `Catastrophic` trigger reclassification. The **class argument**
+(the MAP record named in `classification.record`) lists **each RSK and
+PRSK once**, with its initial and its residual severity in two columns
+— never one row per severity field, never a subset.
 
 ## Control hierarchy (ISO 14971 §7.2) — `control_hierarchy`
 
@@ -65,7 +82,10 @@ that cannot be reduced questions class A.
 2. `protective_measure` — a barrier or check in the software (input
    validation, timeouts, bounded retry).
 3. `information_for_safety` — IFU / labeling text; requires
-   `labeling_disclosure` to hold the verbatim string.
+   `labeling_disclosure` to hold the verbatim string. **On its own it is
+   not creditable risk reduction**: a risk whose only control is a
+   warning keeps its initial index, and its acceptance is argued on
+   that index (or an engineering control is added).
 
 ## Form of a mitigation
 
@@ -78,7 +98,19 @@ Always linked to the risk through `links.mitigates` on the control:
 - **Dedicated TC** — evidence of effectiveness.
 
 One control may mitigate several risks. Controls are never stored on the
-RSK; the build computes them.
+RSK frontmatter; the build computes them from `links.mitigates`, and the
+item's `## Risk controls` section states them **one line each — id,
+what the control does, tier** — because the RAR renders that section per
+record. **A control's evidence is the status of the TC bound to it**
+(`Passed` from `bind_test_results.py`), printed next to the control by
+the exporter; a control with no TC, or a TC bound `Unknown`, is an
+unverified control and the residual argument must say so.
+
+A control must address the **mechanism** of the hazard it is linked to:
+a clinical-evidence regeneration hazard is not mitigated by a phantom
+accuracy test. Before adding `links.mitigates`, state in one sentence
+how the control interrupts the foreseeable sequence; if the sentence
+cannot be written, the link is a mis-trace.
 
 ## Acceptability criterion
 
@@ -91,7 +123,22 @@ else appears in `_to_implement.md`.
 
 The eight normative sections (`## Hazard` … `## Residual risk
 justification`) state the risk **as currently assessed**. They carry no
-date, no "re-assessed after …", no marker, no reference to a commit.
+date, no "re-assessed after …", no marker, no reference to a commit, no
+person or host name ("confirm with Cyril", "on choupinette"), no issue
+number. When a hash, an issue or a competitor reference is removed, the
+**whole parenthetical or clause** goes — never "(open issue".
+
+- **`## Hazard` describes the hazard**, the potential source of harm in
+  the released software — never the pre-control state ("nothing is
+  hash-pinned", "the manifest currently contains PLACEHOLDER"): that
+  text describes a defect of a past build, not a hazard, and it reads as
+  current in the RAR.
+- **`## Risk controls`** and **`## Residual risk justification`** are
+  rendered per record in the RAR. The residual argument is present on
+  every accepted risk; **a residual accepted with an unchanged index**
+  (same severity, same probability — 9 → 9) needs a stated rationale
+  (why the risk is acceptable as is, or why the control does not move
+  the index but is kept), not a bare `residual_acceptable: true`.
 
 - A **re-assessment** ("after the frame-rejection change, probability
   unchanged; controls still hold") is one dated line in `## History`.

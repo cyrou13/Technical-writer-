@@ -71,7 +71,26 @@ Read from `dt-config.yaml`:
 - **TL-9 duplicate rendering** — each item is rendered exactly once in
   its deliverable (the SDD used to render each item three times).
 - **TL-10 open points** — the open-points register is never appended
-  without `--internal`.
+  without `--internal`. The **unresolved anomalies** appendix is a
+  different list and is exported in every mode (see SL-12).
+- **TL-11 criteria are behaviour** — an `## Acceptance criteria` line or
+  a TC `## Expected results` line that carries a status word
+  ("confirmed", "recorded", "expected failure", "placeholder until"),
+  a TC / SDS / decision id as its subject, a person's name, or an
+  unquantified tolerance ("about", "roughly", "small margin", "~") is
+  an offender. A measurement is Notes; a bound is a criterion.
+- **TL-12 dangling clause** — an unbalanced parenthesis or a clause
+  ending in "issue", "commit", "see" with nothing after it (the trace of
+  a stripped hash / issue / competitor reference) is an offender: the
+  whole parenthetical goes.
+- **TL-13 terminology** — a concept named by more than one term across
+  the exported SRS, the labeling anchors (`intended-use`,
+  `warnings-and-precautions`) and the report strings is reported
+  (warning); the glossary term wins, the labeling vocabulary first.
+- **TL-14 exporter rendering** — no per-item `version` in an export; each
+  requirement is a heading; kind sections list id + title only; each
+  deliverable carries its own `documents.<x>` identifier and title;
+  headings left empty by section stripping are removed.
 
 ## Store lint (SL) — applied to `docs/items/**` and the registries
 
@@ -97,10 +116,63 @@ Read from `dt-config.yaml`:
   `general-system-architecture`, `run-states`, `architecture-rationale`,
   `security-global-view`, `security-multi-patient-view`,
   `security-updateability-view`, `security-use-case-views`.
-- **SL-7 class A severities** — no RSK / URSK with `severity: Critical`
-  or `Catastrophic`; no risk item with `residual_acceptable: false`; no
-  risk item `acceptable: false` without a control (the historical
-  `--strict` rules of `build_docs.py`).
+- **SL-7 class severities** — in class A no RSK / URSK with
+  `severity: Critical` or `Catastrophic`; in any class no risk item with
+  `residual_acceptable: false` unless it is listed in the anomalies
+  appendix with an owner; no risk item `acceptable: false` without a
+  control (the historical `--strict` rules of `build_docs.py`).
+- **SL-8 parameter registry** — `parameters[].source` is not a path
+  (no `/`, no `.py`/`.ts`/`.yaml` suffix); one owner per name (a second
+  declaration is an error even with the same value); a list value is a
+  list; every frozen parameter is described in the text of the item
+  that owns it (the name appears in its `## Description` or criteria).
+- **SL-9 references** — every id in an item's `references:` resolves to
+  `dt-config.yaml: references[].id`; every SRS whose text quotes a
+  clinical threshold or names an algorithm carries at least one id
+  (warning); every entry is used by at least one item (warning).
+- **SL-10 document identifiers** — `documents: {srs, sdd, rar, stp,
+  stdr, str}` are all set, no two equal, none `[TODO]`; every
+  `project_references` entry that names one of them carries the same
+  identifier; the export takes its own title from `documents.<x>.title`.
+- **SL-11 risk scales** — `classification.severity_definitions` and
+  `probability_definitions` define every level used by a risk item with
+  a harm-based sentence, not a number; a residual accepted with an
+  unchanged index (`residual_severity == severity` and
+  `residual_probability == probability`) has a non-empty `## Residual
+  risk justification`; `control_hierarchy: information_for_safety`
+  with no other mitigating item does not lower the residual index; one
+  risk matrix, applied identically to every THR.
+- **SL-12 OTS rows** — one row per installed component at an exact
+  version (no range pin, no duplicate name); `supersedes` filled when
+  two package managers carry the name; `functions_used` non-empty for
+  every `safety_relevant: true` row and each symbol importable from the
+  device code; `hazard_review` / `verification` of a
+  `safety_relevant: false` row state the reason after the dash; the
+  base image is one entry; no second inventory in item prose or in a
+  clinical-context anchor.
+- **SL-13 THR sections and views** — every THR carries `## Threat
+  description`, `## Attack path and preconditions`, `## Controls` with
+  at least one SRS/SDS id and no TC id, `## Residual` with a level
+  and a condition; the four `security-*` anchors are non-empty.
+- **SL-14 test evidence** — every TC `steps` has at least two entries
+  and none is "run pytest"; `expected` has one clause per test
+  function of `test_id`; a TC bound `PassedWithSkips` /
+  `PassedWithXfail` / `Skipped` appears in the anomalies appendix; a
+  test that runs a benchmark or release gate is its own TC.
+
+## Decision findings (DEC) — reported, never fixed by a tool or a writer
+
+- **DEC-1 labeling vs specification** — a warning in
+  `warnings-and-precautions` that names an output the SRS forbids, or an
+  `intended-use` that omits the indication the thresholds encode (a
+  stroke cut with no stroke indication), is a contradiction between
+  approved labeling and the specification. The `compliance-reviewer`
+  reports it at **DECISION** level for the product owner / RAQA at the
+  top of its report; nobody edits the labeling anchors to make it go
+  away.
+- **DEC-2 undeclared configuration** — a configuration named in the
+  labeling (a second deployment form, a Python API) that no requirement
+  specifies is reported the same way.
 
 ## How to run it
 
@@ -128,7 +200,13 @@ python tools/build_rationale.py                    # standalone SDD rationale ap
 ```
 
 The exporters print offenders grouped by rule, one line per offender:
-`<rule> <item or anchor> L<line>: <excerpt>`. The `compliance-reviewer`
+`<rule> <item or anchor> L<line>: <excerpt>`. Each export also renders,
+from `dt-config.yaml`, its own identifier and title (`documents.<x>`),
+the References section (`references`), the unresolved anomalies
+appendix (`anomalies` + bound TC statuses + `residual_acceptable: false`
+items), and — in the STR — the run metadata of the bound run: software
+version and its source, release-evidence mode, host, branch, dirty flag,
+Python / pytest / numpy versions, run start. The `compliance-reviewer`
 copies that list to the top of `99_compliance_review.md`, offenders
 first, before any coverage metric.
 
@@ -148,3 +226,16 @@ format; the release export is then **not** claimed to be clean.
 5. Third-party components referenced by their `docs/ots.yaml` key.
 6. Markers only in `## Notes`, `## Open questions`, `## History`.
 7. `updated` set; one `## History` line added.
+8. `parameters[].source` is prose or a dotted symbol; each constant has
+   one owner and is described in the owner's text.
+9. `references:` names the source of every clinical threshold and every
+   algorithm.
+10. Criteria are behaviour with a number — no status, test id, decision
+    id, placeholder; measurements in Notes.
+11. One glossary term per concept, the labeling's term.
+12. A risk item: hazard as released, controls one line each with tier,
+    residual argument present even when the index is unchanged.
+13. A THR: description, attack path and preconditions, controls as
+    SRS ids, residual level with its condition.
+14. A TC: steps a reader can re-execute, one expected clause per test
+    function, no status in the body.

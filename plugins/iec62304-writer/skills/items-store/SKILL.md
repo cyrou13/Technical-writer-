@@ -57,11 +57,11 @@ never leave the repository. The rule that follows from it:
 
 | Category | Normative (exported) | Rationale | Internal (never exported) |
 |---|---|---|---|
-| SRS | `## Description`, `## Acceptance criteria` | — | `## Notes`, `## Open questions`, `## History` |
-| SDS | `## Responsibility`, `## Interfaces`, `## Invariants`, `## Design` | `## Design notes` (rendered once, in the SDD rationale appendix, never inline) | `## Notes`, `## Open questions`, `## History` |
-| TC | `## Preconditions`, `## Steps`, `## Expected results` | — | `## Notes`, `## Open questions`, `## History` |
-| RSK / PRSK | `## Hazard`, `## Initiating causes`, `## Foreseeable sequence of events`, `## Hazardous situation`, `## Harm`, `## Initial risk justification`, `## Risk controls`, `## Residual risk justification` | — | `## Notes`, `## Open questions`, `## History` |
-| THR | `## Threat`, `## Threatened asset`, `## Exploitation vector`, `## Level justification`, `## Expected controls`, `## CIA impact analysis` | — | `## Notes`, `## Open questions`, `## History` |
+| SRS | `## Description`, `## Acceptance criteria` — each requirement is rendered as a heading of its own | — | `## Notes`, `## Open questions`, `## History` |
+| SDS | `## Responsibility`, `## Interfaces`, `## Invariants`, `## Design` (the normative detailed design) | `## Design notes` (alternatives and reasons only; rendered once, in the SDD rationale appendix, never inline) | `## Notes`, `## Open questions`, `## History` |
+| TC | `## Preconditions`, `## Steps` (a procedure), `## Expected results` (one clause per test function) | — | `## Notes`, `## Open questions`, `## History` |
+| RSK / PRSK | `## Hazard`, `## Initiating causes`, `## Foreseeable sequence of events`, `## Hazardous situation`, `## Harm`, `## Initial risk justification`, `## Risk controls`, `## Residual risk justification` — the last two are rendered per record in the RAR | — | `## Notes`, `## Open questions`, `## History` |
+| THR | `## Threat description`, `## Attack path and preconditions`, `## Level justification`, `## Controls` (SRS/SDS ids — a TC id is verification, never a control), `## Residual` (level + acceptance condition), `## CIA impact analysis` | — | `## Notes`, `## Open questions`, `## History` |
 | URSK | `## Use error`, `## Conditions favoring the error`, `## Hazard and harm`, `## Level justification`, `## Expected controls` | — | `## Notes`, `## Open questions`, `## History` |
 | USC | `## Persona`, `## Preconditions`, `## Normal usage sequence`, `## Foreseeable use errors` | — | `## Notes`, `## Open questions`, `## History` |
 | MAP | `## Description`, `## Source` | — | `## Notes`, `## History` |
@@ -69,9 +69,26 @@ never leave the repository. The rule that follows from it:
 Rules per section:
 
 - **`## Acceptance criteria`** is a **numbered list** (`1.`, `2.`), one
-  measurable criterion per line, the number and unit stated. Never
+  measurable **behaviour** per line, the number and unit stated. Never
   `- [ ]` / `- [x]` — a tick-box reads as a verification status in the
-  exported SRS.
+  exported SRS. A criterion is never a status ("confirmed by RAQA"), a
+  test id ("TC-AIF-013 stays an expected failure"), a decision id, a
+  "placeholder until …", or a statement about the source code. A
+  tolerance is a number taken from the test that asserts it ("within
+  `aif_offset_tol` (2 voxels)"), never "about", "small margin", "~85 %".
+  A **measurement** ("peak RSS 20.6 GB on the 40-frame study") is
+  evidence and goes to `## Notes`; the **bound** ("peak RSS at most
+  `max_rss` (24 GB)") is the criterion.
+- **Terminology.** One glossary term per concept (the `## glossary`
+  anchor of `docs/dt-clinical-context.md`), used verbatim in every
+  requirement, in the labeling and in the report strings; when the
+  labeling and an item disagree, the labeling vocabulary wins. "Tmax > 6 s
+  region" is not also "hypoperfusion region", "high-Tmax region" and
+  "critically hypoperfused region".
+- **Link stripping.** When a commit hash, an issue number or a competitor
+  reference is removed from a normative sentence, the whole
+  parenthetical or clause goes with it — never leave "(open issue" or
+  "measured in issue;" behind.
 - **`## History`** replaces `## Changelog`. Format, newest first:
   `- YYYY-MM-DD vX.Y.Z — <what changed and why>`. Closure notes
   ("re-assessed after …: unchanged"), decisions, and the reasoning behind
@@ -105,6 +122,7 @@ owner: null                      # who owes the open work (workstream, role, per
 target_release: null             # release the open work is owed for, e.g. V1.0.0
 source:                          # code / test files that justify the item
   - src/auth/oauth.ts
+references: []                   # ids of `dt-config.yaml: references` entries this item cites (SRS, SDS)
 links:                           # outgoing traces
   parent: []                     # item → item of the same category
   implements: []                 # SDS → SRS; SRS → MAP
@@ -113,6 +131,20 @@ links:                           # outgoing traces
   triggers: []                   # THR / URSK → RSK
 ---
 ```
+
+`references:` names the literature and standards the item relies on, by
+the `id` of an entry of `dt-config.yaml: references`
+(`references: [{id, citation}]`). **Every clinical threshold and every
+algorithm names its source** — a DEFUSE-3 cut, an oSVD deconvolution, a
+published oxygen-transport model each carry an id, quoted in the text as
+`[DEFUSE3]`. The exporters render one References section per
+deliverable from the ids in use; an id no entry defines, or an entry no
+item uses, is a lint finding (SL-9).
+
+Exports carry **no per-item `version`** — the deliverable has one
+version label (`document.version_label`); the kind sections of the SRS
+list `id` + `title` only, never a summary derived from the first
+sentence (the summary diverges from the body).
 
 ## SRS — specific keys
 
@@ -168,12 +200,12 @@ item that owns it:
 
 ```yaml
 parameters:
-  - name: derived_series_number   # snake_case, unique across the whole store
-    value: 1301
+  - name: derived_series_number   # snake_case, unique across the whole store — ONE owner
+    value: 1301                   # a list value is a YAML list: value: [4, 6, 8, 10]
     unit: null                    # SI unit, or null for a count / enumeration
     settable: false               # true if a site or user can change it at runtime
     interval: null                # allowed range when settable, e.g. "[0.5, 6.0]"; null when fixed
-    source: src/export/series.py  # where the constant lives in the code
+    source: package.export.series.SERIES_NUMBER  # prose or a dotted symbol — never a file path
 ```
 
 Rules:
@@ -185,10 +217,24 @@ Rules:
 2. Normative text quotes the number **and** names the parameter:
    "… within `max_processing_time` (600 s)". A bare literal that matches
    no declared parameter is reported by the lint.
-3. Another item that needs the same constant declares the same
-   `name`/`value` (the lint enforces equality) or refers to it by name in
-   prose; it never restates a different literal.
+3. **One owner per name.** The item that owns the constant declares it
+   and **describes it in its own text** — a frozen parameter that no
+   requirement describes is a registry row without a specification
+   ("arterial_lead_s frozen but described in no requirement"). Another
+   item that needs the constant refers to it by name in prose; it never
+   redeclares it, with the same value or another.
 4. `settable: true` requires `interval`.
+5. `source` is **prose** ("configuration schema", "DICOM standard PS3.3")
+   or a **dotted symbol** (`ctperfusion.common.config.MIN_FRAMES`) —
+   never a path. The registry is rendered in **SRS §4.1** and **SDD
+   §3.8** (one table: SRS and SDS parameters joined), where a path is
+   a code reference in a customer document; the lint refuses paths and
+   duplicate names (SL-8).
+6. A list value is written as a YAML list (`[4, 6, 8, 10]`), never as a
+   string that the table truncates to its first element.
+7. Two names for one constant (`min_slice_visits` and
+   `dynamic_min_visits_per_location`) are a duplicate: keep the one the
+   glossary uses, reference it from the other item.
 
 ## Other categories — specific keys
 
@@ -212,7 +258,11 @@ MAP. Summary:
 - **TC**: `type` (Unit | Integration | System | E2E), `automated`,
   `test_id` (must resolve to a test that exists in the repository),
   `executed_at` (set only by `tools/bind_test_results.py`),
-  `preconditions`, `steps`, `expected`, optional `usability_type`.
+  `preconditions`, `steps` (a procedure: fixture, action, observation),
+  `expected` (one clause per test function of `test_id`), optional
+  `usability_type`. `status` is `Unknown` until the binder sets
+  `Passed | Failed | Skipped | PassedWithSkips | PassedWithXfail` — a
+  case with a pytest-level skip or an xfail inside is never `Passed`.
 - **MAP**: `external_id`, `source_document`, `source_section`.
 
 ## Links and traceability
@@ -243,6 +293,12 @@ creation) and `maintenance` afterwards (full History discipline).
 
 - Competitor product names. Comparisons live in `docs/competitors/` or
   the benchmark reports, never in an item.
+- A person, a host or a machine name ("confirm with Cyril", "on
+  choupinette"), an issue number, an internal ruling id ("ruling H35")
+  in a normative section.
+- In a risk item, the state **before** the controls ("nothing is
+  hash-pinned yet", "currently contains PLACEHOLDER") presented as the
+  hazard: the hazard is the source of harm in the released software.
 - Code paths or test paths in **SRS** normative text. `source:` and
   `test_id:` carry them in the frontmatter; the exported SRS says what
   the device does, not where.
@@ -261,6 +317,19 @@ creation) and `maintenance` afterwards (full History discipline).
 4. Never rewrite `id` or `created`; never renumber.
 5. Never write a date, a decision or a change note into a normative
    section — History only.
+
+## Two lists that are not the same
+
+- The **open-points register** (`## Open questions`, `[TODO`/`[GAP-`
+  markers) is internal; it is exported only with `--internal`.
+- The **unresolved anomalies appendix** (Enhanced documentation level)
+  is exported in every deliverable. It is built by the exporters from
+  `dt-config.yaml: anomalies.known_defects`, every TC bound as
+  `PassedWithXfail`, `Skipped` or `PassedWithSkips`, every risk item
+  with `residual_acceptable: false`, and the `## Open actions` section
+  of the decision record named in `anomalies.decision_record` — one row
+  each: id, description, owner, target release, risk link. Nothing is
+  written into it by hand.
 
 ## Build
 

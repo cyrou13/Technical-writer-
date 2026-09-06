@@ -49,11 +49,14 @@ IEC 81001-5-1 §3.
 Apply S-T-R-I-D-E **systematically** to every entry point, trust boundary
 and sensitive asset drawn on the architecture views.
 
-## The four cybersecurity architecture views
+## The four cybersecurity architecture views — all four required
 
 The security-analyst produces (or completes) these sections of
 `docs/dt-clinical-context.md`; each THR names the view it is drawn on in
-`architecture_view:`.
+`architecture_view:`. The SDD export requires **all four** non-empty
+(SL-13); a product with a single deployment form still has an
+updateability view and a multi-patient view (one instance processing
+studies in sequence is a multi-patient boundary).
 
 | Anchor | View | What it must show |
 |---|---|---|
@@ -84,7 +87,9 @@ no markers — the sections are exported into the SDD.
    delivery threats become **PRSK** items (skill `risk-analysis`) rather
    than THR.
 5. **Likelihood × impact** — Low / Medium / High each; `risk_level` from
-   the 3×3 matrix below. Fill the CIA severities.
+   the 3×3 matrix below, **applied identically to every THR** (Low ×
+   High is `Medium` on every record, not `High` on three and `Medium`
+   on the fourth). Fill the CIA severities and `residual_risk_level`.
 6. **Safety link** — `links.triggers: [RSK-…]` when exploitation reaches
    a clinical output or availability of a critical function.
 7. **Controls** — elimination > technical measure > information.
@@ -103,12 +108,24 @@ no markers — the sections are exported into the SDD.
 
 ## THR body — what goes where
 
-The six normative sections state the threat **as currently assessed**.
+The normative sections state the threat **as currently assessed** and
+are rendered as the threat record of the RAR and of the SDD:
+
+| Section | Content |
+|---|---|
+| `## Threat description` | what the attacker achieves against which asset — a reviewer must understand the threat from this paragraph alone, not from the STRIDE letter and the CIA table |
+| `## Attack path and preconditions` | the entry interface of the global view, the boundary crossed, every precondition (access, a prior failure, a configuration), the step that compromises the asset |
+| `## Level justification` | why this likelihood and impact, the matrix result |
+| `## Controls` | **requirement ids** (SRS, SDS for a design constraint), one line each with what the control does. **A TC id is verification of a control, never a control** — the exporter prints each control's bound TC status next to it |
+| `## Residual` | the residual level and the condition under which it is accepted; when `residual_acceptable: false`, the condition that would make it acceptable and the owner — it then appears in the unresolved anomalies appendix |
+| `## CIA impact analysis` | per dimension |
+
 Re-assessments after a code change, decisions, and revised arguments are
 dated lines in `## History`. `[GAP-CYBER]` goes in `## Open questions`
 and `## History` only, with `residual_acceptable: false` in the
 frontmatter. CVE / CWE references and audit recommendations go in
-`## Notes`.
+`## Notes`. A THR whose title names a deleted surface ("Debug UI") is
+Deprecated, not left as is.
 
 ## Acceptability
 
@@ -123,4 +140,8 @@ it appears in `_to_implement.md` (group B, Cyber).
 - No safety/cyber duplication: one hazard appears once, as RSK or THR;
   `triggers` connects the two.
 - OTS versions and suppliers are read from `docs/ots.yaml`, never
-  repeated in a THR body.
+  repeated in a THR body. `docs/ots.yaml` has one row per installed
+  component at its exact version; when pip and conda both carry a name
+  the pip row is the component and says so in `supersedes`;
+  `hazard_review` states what the scanner does not cover (pip-audit
+  does not scan conda or OS packages).
