@@ -58,17 +58,35 @@ timeout, a default, a limit — is declared in `parameters:`:
 ```yaml
 parameters:
   - name: min_frames
-    value: 8
+    value: 8                              # a list value is a list: [4, 6, 8, 10]
     unit: null
     settable: false
     interval: null
-    source: ctperfusion/qc/frames.py
+    source: ctperfusion.qc.frames.MIN_FRAMES   # prose or a dotted symbol — never a path
+references: [DEFUSE3]                       # ids of dt-config.yaml `references`
 ```
 
 Before declaring, `grep -r "name: <candidate>" docs/items/` — if the name
-exists, reuse it with the **same value**; if the value differs, stop and
-report the conflict rather than declaring a second value. Quote the
-parameter in the text as `` `min_frames` (8) ``.
+exists, **another item owns it**: reference it by name in your text and
+do not redeclare it; if the code holds a different value, stop and
+report the conflict. Quote the parameter in the text as
+`` `min_frames` (8) ``. **Every frozen parameter you declare is described
+in this requirement's text** — a registry row no requirement explains is
+a defect; conversely a constant that two names describe
+(`min_slice_visits` / `dynamic_min_visits_per_location`) is one
+parameter. The registry is rendered in SRS §4.1 (and SDD §3.8), so
+`source` is what a customer may read: `ctperfusion.common.config`, or
+"configuration schema", not `ctperfusion/common/config.py`.
+
+## References
+
+Every clinical threshold (a DEFUSE-3 cut, an rCBF < 30 % core
+definition) and every algorithm (oSVD, an oxygen-transport model) names
+its source: an id of `dt-config.yaml: references` (`[{id, citation}]`)
+in the item's `references:` list, quoted in the text as `[DEFUSE3]`.
+The exporter renders one References section from the ids in use. A
+requirement that says "the map published comparative studies found
+accurate" with no id is unsourced.
 
 ## Body of an SRS item
 
@@ -79,11 +97,11 @@ parameter in the text as `` `min_frames` (8) ``.
 The system **shall** <behaviour> when <condition>, and **shall**
 <guarantee> in all cases.
 
-<!-- Exported (SRS). Numbered, measurable, with the number. -->
+<!-- Exported (SRS). Numbered, measurable behaviour, with the number. -->
 ## Acceptance criteria
 
 1. <criterion, e.g. "A study with fewer than `min_frames` (8) frames is rejected with status code `QC_TOO_FEW_FRAMES`.">
-2. <criterion>
+2. <criterion with a tolerance taken from the test: "the core volume is within `core_volume_tol` (2 mL) of the reference">
 
 <!-- Internal. -->
 ## Notes
@@ -114,6 +132,26 @@ The system **shall** <behaviour> when <condition>, and **shall**
 - **No tick-boxes.** Criteria are `1.`, `2.`, …
 - Every number quoted is a declared parameter or a value of the standard
   it cites.
+- **A criterion is a behaviour with a number.** Never a status
+  ("confirmed by RAQA"), a test id ("TC-AIF-013 stays an expected
+  failure"), a decision id, an "engineering action", a "placeholder
+  until …", a statement about the module's source code. A tolerance is
+  the number the test asserts — never "about 1.1", "~85 %", "small
+  margin", "within tolerance", "non-worse".
+- **Measurements are evidence, bounds are criteria.** "Measured peak
+  20.6 GB" and "about 25 s on the 40-frame study" go to `## Notes`; the
+  criterion is "peak resident memory at most `max_rss` (24 GB)". A
+  limit set equal to the maximum of three measurements is a
+  measurement, not a bound.
+- **One glossary term per concept**, verbatim from the `## glossary`
+  anchor; the labeling vocabulary wins ("Tmax > 6 s region", not also
+  "hypoperfusion region" and "critically hypoperfused region"; the
+  time-to-maximum map is not "arrival delay" in one item and "not an
+  arrival delay" in another).
+- **Kind matters**: a QC plausibility rule is `functional` or
+  `performance`, not `interface`; a `safety` kind declared in the
+  document and assigned to no requirement is a visible hole — either
+  link the mitigation SRS to their RSK or say why there is none.
 
 ## Anti-patterns
 
@@ -137,6 +175,18 @@ The system **shall** <behaviour> when <condition>, and **shall**
 4. Leave `links:` empty except `implements` toward a MAP item when the
    upstream requirement is known — SDS→SRS and TC→SRS links are set by
    the other agents.
+
+## Labeling vs specification
+
+Read the labeling anchors of `docs/dt-clinical-context.md`
+(`intended-use`, `warnings-and-precautions`) before writing. When a
+warning names an output the requirements forbid, when the intended use
+omits the indication the thresholds encode (stroke cuts with no stroke
+indication), when the labeling names a configuration no requirement
+specifies — **do not edit the labeling and do not bend the
+requirement**: report it in your return as a DECISION-level finding for
+the product owner / RAQA (`submission-readiness` DEC-1/2) and leave a
+line in `## Open questions`.
 
 ## When in doubt
 

@@ -38,11 +38,11 @@ One SDS item = **one module with one responsibility**. If
 ## Invariants
 - <constraints the module maintains>
 
-<!-- Exported. The design AS BUILT: data flow, algorithm, states, error handling. Present tense. -->
+<!-- Exported. The normative DETAILED DESIGN: algorithm (formula, steps, model), data (structures, units), interfaces realised, every threshold — as a number owned here or by name from the registry. Present tense. -->
 ## Design
-<what the module does and how, today>
+<what the module does and how, today — enough to re-implement it>
 
-<!-- Rationale — rendered once in the SDD appendix, never inline. No dates. -->
+<!-- Rationale ONLY — alternatives discarded and the reasons. Rendered once in the SDD appendix, never inline. Nothing normative. No dates. -->
 ## Design notes
 <alternatives discarded, why this design, known limits of the approach>
 
@@ -58,12 +58,41 @@ oscillation index" is Design. "Standard SVD was rejected because the
 oscillation index drifts with noise" is Design notes. "Changed from
 sSVD to oSVD after the noise sweep" is History, dated.
 
+Two defects the reviewers found on both sides of that line:
+
+- **Inverted split** — a decomposition chart, a containment contract, a
+  refusal-rule list, an allowlist, an interval table sitting in
+  `## Design notes` (so the normative design is in the rationale
+  appendix and §3.7 says nothing). Anything that *specifies* is Design;
+  the architecture chart lives in the body.
+- **Thin design** — "features named, no formula": a motion-correction
+  module with no algorithm and no bound, a denoiser with no filter, an
+  AIF selector listing features but no weights, a QC module with
+  "checks" but no thresholds. `## Design` states the algorithm, the
+  data, the interfaces and the thresholds (or names the registry
+  parameter that owns each); a reviewer must be able to re-implement
+  the module from it.
+
+Other single-truth rules of the SDD: **one declared-environment table**
+(every environment variable the software reads, in one SDS or one
+clinical-context anchor, referenced everywhere else — not "four
+variables" here and "eight" there); **one run-state table** (the exit
+statuses stated once, other sections reference it); a behaviour stated
+once and referenced ("the study identifier is never minted" in one
+place, not three phrasings). `references:` names the source of every
+algorithm (SL-9).
+
 ## Parameters
 
 An SDS quoting a constant (a regularisation floor, a buffer size, a
-default) declares it in `parameters:` exactly as an SRS does (skill
-`items-store`). If the SRS already declares the name, reuse the name and
-the value; never restate a different literal.
+default, an ingest bound, a resource limit) **owns** it in `parameters:`
+exactly as an SRS does (skill `items-store`): `source` is prose or a
+dotted symbol, never a path; list values are lists. If an SRS already
+owns the name, reference it by name in the text; never redeclare it,
+never restate a different literal. The SDD renders **§3.8 as the whole
+registry** (SRS and SDS parameters joined, with the owning item) — an
+SDS whose constants live only in prose leaves §3.8 empty while the
+numbers are scattered through the appendix.
 
 ## OTS / SOUP registry — `docs/ots.yaml`
 
@@ -87,9 +116,32 @@ components:
 ```
 
 The architecture-writer creates or updates the registry from the
-dependency manifests; the security-analyst reads it for supply-chain
-threats; the exporter renders the registry as the SDD's SOUP table. A
-version or supplier written in an item body fails SL-3.
+dependency **locks** (exact versions); the security-analyst reads it for
+supply-chain threats; the exporter renders the registry as the SDD's
+SOUP table, below the `control_procedure` and `hazard_contribution`
+narratives of the same file. A version or supplier written in an item
+body fails SL-3. The registry rules (SL-12):
+
+- **one row per installed component at its exact version** — no range
+  pin, no second row for one name; when pip and conda both carry a name
+  the pip row is the component and `supersedes` says so ("conda numpy
+  2.2.6: the pip wheel shadows it at import time");
+- **`functions_used` from the actual imports** of the device code —
+  grep the package; "clustering" is not a symbol, and a row claiming
+  "no symbol imported" while an SDS says the module clusters with it is
+  a contradiction;
+- **`hazard_review` honest about scanner coverage** — pip-audit covers
+  pip packages only; a conda-installed C library or an OS package says
+  what controls it instead (digest-pinned image, rebuild at release);
+- **the base image is one entry** (digest as version, OS packages as
+  `functions_used`);
+- **safety relevance justified per component** after the dash of
+  `hazard_review` ("not on any device code path; imported by the test
+  suite only") — a component another component aborts without is on
+  the code path;
+- **no second inventory in prose** — a dependencies paragraph in an SDS
+  or a table in the clinical context is a defect; the SDD renders this
+  file.
 
 ## Architecture views — `SDS-ARCH-*` items
 
@@ -98,7 +150,10 @@ version or supplier written in an item body fails SL-3.
   serverless detected),
 - `SDS-ARCH-003` data view (if a persistence layer exists).
 
-Mermaid diagrams in `## Design` when they carry more than three nodes.
+Mermaid diagrams in `## Design` (never in `## Design notes`) when they
+carry more than three nodes. A runtime diagram shows the **whole stage
+chain** the SRS pipeline requirement lists — one name per class, no
+stage skipped, the same numbering as the stage table.
 
 ## Narrative sections — `docs/dt-clinical-context.md`
 
