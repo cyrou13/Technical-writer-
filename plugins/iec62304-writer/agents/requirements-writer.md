@@ -69,7 +69,7 @@ lit le code. Une exigence ne doit jamais ressembler à un extrait de code.
   `ValueError` » ni « `VOFConfig.search_erosion_px` defaults to 0 ».
 - **À la place**, nommer la fonction en langage métier : « When venous
   output function (VOF) detection is enabled (default: on)… », « …the
-  system shall reject the input and report an error », « the venous search
+  application rejects the input and reports an error », « the venous search
   mask erosion defaults to zero (no erosion) ».
 - Un **paramètre de configuration** se réfère par sa signification ; le nom
   technique exact n'apparaît que (a) dans un rappel entre parenthèses si
@@ -92,6 +92,86 @@ Test rapide : si retirer le nom de code rend la phrase incompréhensible OU
 fait disparaître un nombre/une relation, l'exigence est mal reformulée —
 réécris le comportement en gardant la contrainte mesurable.
 
+## Altitude: what a requirement states, and what it must not
+
+The rule above is about vocabulary. This one is about level, and it is the one
+that goes wrong silently: a statement can avoid every code name and still
+specify the implementation, step by step, in perfectly plain English.
+
+**A requirement states the behaviour observable at the boundary of the software
+item — what the software does, under what condition, and what a test can see.
+It does not state the method by which it does it.** When the requirement is
+written, the method is usually not chosen yet; writing it into the requirement
+freezes a design decision at the wrong level and makes every later design change
+look like a requirement change.
+
+- **Design, therefore SDS, not SRS:** the algorithm and its steps, their order,
+  the intermediate quantities and signals, the data structures, the search
+  strategy, the scoring function, the aggregation and outlier rules, the guards'
+  mechanics, the library or model used, and the tuning constants of the chosen
+  method (a percentile, an erosion width, a neighbourhood size, a smoothing sigma).
+- **Requirement, therefore SRS:** that the function happens at all, that it
+  happens without a user, on what input, with what observable property
+  (arterial and not venous; robust to motion; refused rather than silently
+  degraded), what it reports, and the numeric criterion a test checks.
+- **Declared clinical values stay** (`rCBF < 30 %`, `Tmax > 6 s`): they come
+  from the labeling or the literature, not from the method. They belong in
+  `parameters:` and may be named once in the statement. Every other constant
+  lives in `parameters:` only and is not repeated in prose.
+
+Nothing is deleted when a sentence changes level: the method goes to the
+`## Design notes` of the SDS item that `implements:` the requirement, the
+rationale and the evidence go to the requirement's `## Notes`.
+
+**Shape — the house style.** The statement is written in the **indicative
+present**, as the approved Avicenna SRS are: "The image processing application
+detects…", "The application refuses…". No `shall`, no `must`, no bold, no bullet
+or numbered list, no sub-heading. One paragraph, two at most, **30 to 80 words**
+(the house median is 26 words, the longest 58). The `description:` frontmatter
+carries the same paragraph verbatim. The acceptance criteria are a numbered list
+of **at most 8** one-line items (≤ 22 words), each an observable outcome
+(condition → visible result); a criterion that tests the method rather than the
+behaviour belongs to the SDS. The title is a noun phrase of at most 10 words.
+
+**Two tests before keeping a sentence.**
+
+1. *Substitution.* If another team re-implemented the software from scratch,
+   would this sentence still be exactly what they must achieve? If they could
+   achieve the requirement differently, the sentence is design.
+2. *Change.* If we tuned a constant or swapped the algorithm without changing
+   what the user gets, would this sentence change? If yes, it is at the wrong
+   altitude.
+
+Example — through-plane frame rejection. **Wrong** (the method, 314 words in the
+original): "…shall flag such a frame from three independent per-frame signals:
+1. Geometric residual — the per-slice residual mismatch between a registered
+frame and its contrast-matched low-rank reconstruction… 2. Isolated in-plane
+displacement spike — measured as an excess over a local running-median
+baseline… Signals 1 and 2 shall be aggregated across slices before the outlier
+test… A frame shall be flagged when the aggregated signal exceeds a robust
+threshold (median plus a multiple of the median absolute deviation)…"
+**Right** (the behaviour, 72 words): "The image processing application detects
+the time frames of the perfusion series that are corrupted by patient motion
+through the imaging plane and excludes them from the perfusion analysis, keeping
+the acquisition time of every remaining frame. The frames around the bolus peak
+are never excluded. When too many frames are detected, the series is analysed
+unchanged and a quality warning is raised. The excluded frames are reported in
+the quality-control output." The three signals, the aggregation and the outlier
+rule now live in the SDS item for geometric normalisation; the constants
+(`fr_mad_k`, `fr_abs_floor`, `fr_peak_guard_s`, `fr_max_reject_frac`) in
+`parameters:`.
+
+The release lint of the SRS export refuses a statement over 90 words, a
+statement that carries a list or a `shall`, and more than 8 acceptance criteria
+(kind `altitude`).
+
+**Context belongs to the area, not to the requirement.** Each functional area of
+the SRS (§2.2.k) opens with a short introduction — the clinical or technical
+context and the literature it rests on, cited as `[Rn]` — written by hand in
+`docs/srs-domain-introductions.md` (`## <DOMAIN>` sections). A requirement that
+needs a paragraph of context to be understood is a sign the context is missing
+from its area's introduction, not that the requirement should carry it.
+
 ## Règles
 
 - Respecter `dt-config.yaml: versioning.mode` (cf. skill `items-store`). En mode
@@ -100,8 +180,9 @@ réécris le comportement en gardant la contrainte mesurable.
   normaux.
 - Pas d'invention. Si une exigence n'est pas inférable du code → `[TODO]`
   et `## Questions ouvertes`.
-- Phrases avec `doit` / `shall` + critère mesurable.
-- Critères d'acceptation sous forme de checklist.
+- Énoncé à l'indicatif présent (« The application detects… »), 30 à 80 mots, sans
+  `shall` ni liste — voir « Altitude » ci-dessus ; `description:` reprend l'énoncé.
+- Critères d'acceptation : liste numérotée, 8 au plus, une ligne chacun.
 - Maintenir `verification:` cohérent avec ce qui est testable :
   `Test` si du code de test existe, `Inspection` pour ce qui se vérifie
   par lecture, `Analysis` pour les dérivations formelles, `Demo` pour les

@@ -365,6 +365,24 @@ interface, un invariant ou un critère d'acceptation va dans `## Notes`. Ne pas
 l'inliner dans `## Description` pour « donner le contexte » — ça grossit le
 livrable et ça n'y a pas sa place.
 
+## L'énoncé d'une exigence SRS — altitude et forme
+
+`## Description` dit **ce que** fait le logiciel, jamais **comment** : à
+l'indicatif présent, en un paragraphe (deux au plus) de 30 à 80 mots, sans
+`shall`, sans liste, sans constante autre qu'une valeur clinique déclarée. La
+méthode va dans `## Design notes` de l'item SDS qui `implements:` l'exigence ; le
+rationale dans `## Notes`. `description:` (frontmatter) reprend le paragraphe mot
+pour mot. `## Acceptance criteria` : liste numérotée de 8 critères au plus, une
+ligne chacun, chacun un résultat observable. Le lint `altitude` de l'export SRS
+refuse le reste. Règle détaillée, exemple et tests de substitution/changement :
+agent `requirements-writer`, section « Altitude ».
+
+Le **contexte d'une thématique** (clinique, technique, littérature citée `[Rn]`)
+s'écrit une fois, à la main, dans `docs/srs-domain-introductions.md` — une
+section `## <DOMAIN>` par code de `domain_order` — et l'export SRS le place sous
+le titre de la thématique (§2.2.k), avant ses exigences. Ce fichier n'est pas un
+item : pas d'exigence, pas de méthode, pas de chemin de code dedans.
+
 ## Liens et traçabilité
 
 Tous les liens sont **sortants** et stockés dans `links:` du fichier source.
@@ -441,3 +459,59 @@ versioning:
 - `docs/generated/_to_implement.md` (backlog actionnable structuré en
   groupes A. Safety / B. Cyber / C. Usability / D. Mitigations / E. Autres Must),
 - `docs/generated/coverage.json` (métriques machine-readable).
+
+## Register of the exported text
+
+Exported sections and exported frontmatter fields are controlled-document
+text: declarative, present tense, stating the released software and the
+controls in force. Evaluative clauses, descriptions of the pre-control
+state, dramatised consequences and person or host names are refused by
+the release lint (kind `register`, classes `editorial`, `pre-control`,
+`rhetoric`, `name`) and belong in `## History` / `## Notes`. An open
+condition is stated once, in the residual section, as condition + owner
++ target release. The rule changes wording, never a fact, a rating or an
+acceptance decision — see `agents/risk-analyst.md`, "Register".
+
+## Scope of the technical documentation: the released device only
+
+The technical file describes the device that is released. A sentence earns its
+place if it states a property of that device, narrows the claim ("the thresholds
+are not user-selectable"), or answers a feature the predicate has. A sentence
+whose subject is something the release does not contain — a configuration nobody
+may deploy, a build target nobody receives, a tree that is never packaged, a
+product identity that was dropped — narrates an absence: it enlarges the file,
+invites a question no reader needs to ask, and protects nobody. The release lint
+refuses it (kind `scope`).
+
+Two things survive the rule. A **control** of the released device is named by
+what it does, never by the release status of what it acts on: write "the
+configuration boundary refuses every series name outside the declared set", not
+"the research maps are gated off". A **component that ships inside the image**
+may be named for what it is — 62304 asks for the architecture of the item as
+built — but never for its release status or its identity as another product.
+
+## Research features are not in the technical documentation
+
+A research feature — an arm of the code base that no released configuration
+reaches, a build target that is not a device, an experimental output — is out of
+the file entirely:
+
+- it gets **no requirement, no design item, no test case and no risk record** of
+  its own in the exported documentation. If such records exist from an earlier
+  scope, retire them (`status: Retired` + `retired_reason`); a retired record
+  keeps its history in the store and is exported nowhere;
+- **no active item names one**, in its text or in its links: a traceability
+  column that cites a retired record re-imports into the file exactly what
+  retiring it removed;
+- the **risk file** does not carry its hazards. A function that is not in the
+  device has no hazards of the device;
+- if the code of that feature ships inside the released image, the design
+  description says what the component is and what gate keeps it inert — that is
+  a statement about the released image, not about the research feature;
+- keep the research assets **outside the release tree** (their own directory,
+  their own profile, refused by the release build), so the documentation and the
+  build agree.
+
+Do not spend a rewrite pass on retired research records: they are not exported,
+so their register and their altitude do not matter. Leave them as the historical
+record they are.

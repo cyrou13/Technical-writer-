@@ -45,7 +45,8 @@ ce qu'on **regarde en daily**.
 | Items MAP | `docs/items/MAP/*.md` | non | §3 sans MAP parent column |
 | Config QMS | `dt-config.yaml` | non | valeurs par défaut + `[TODO]` |
 | Sections narratives | `docs/dt-clinical-context.md` | non | sections vides + `[TODO]` |
-| Template Word | `dt-config.yaml: rendering.reference_docx` | non | rendu .docx avec style pandoc par défaut |
+| Introductions des thématiques | `docs/srs-domain-introductions.md` (`## <DOMAIN>`) | non | thématique sans introduction |
+| Template Word | `dt-config.yaml: rendering.reference_docx` — produit par `tools/make_reference_docx.py --from <livrable approuvé.docx>` | non | rendu .docx avec style pandoc par défaut |
 
 ## Outputs
 
@@ -88,11 +89,16 @@ TABLE OF CONTENTS
 
   §2.2 Functionalities — for each DOMAIN extracted from SRS items:
     §2.2.<k> <Domain pretty name>
-      For each SRS item in that domain (sorted by NNN):
-        <ID>                       (e.g. SRS-CINA-CSP-ACQ-020)
-        <Title>
-        <Body paragraphs from item Markdown>
-        V<version>
+      <Introduction of the area>   ← docs/srs-domain-introductions.md: ## <DOMAIN> (if written)
+      For each SRS item in that domain (sorted by NNN) — the house idiom:
+        <ID>                       grey band, bold navy      (style RequirementId)
+        <Title>                    italic navy, indented     (style RequirementTitle)
+        <Description paragraph>    blue                      (style RequirementBody)
+        V<major>.<minor>           the item's own version    (style RequirementVersion)
+        | # | Acceptance criterion |        compact table (when the item has criteria)
+        | Parameter | Value | Unit | Settable [| Interval] |   compact table (when the item declares parameters)
+      No heading per requirement, no attribute row: kind/priority/verification
+      are tabulated in §3 and the non-functional kinds listed from §2.3.
 
   §2.x Personnel and training   ← dt-clinical-context: ## personnel-and-training
   §2.x Packaging                ← dt-clinical-context: ## packaging
@@ -124,6 +130,32 @@ choisi ainsi :
    logger le mapping appliqué.
 3. Si pas de mapping plausible : utiliser le code domaine tel quel et
    logger un `[TODO domain_pretty_name: ACQ]` dans `dt-config.yaml`.
+
+## Look & feel du .docx
+
+Le modèle `docs/templates/avicenna-reference.docx` est construit par
+`tools/make_reference_docx.py --from <SRS approuvé d'un autre produit CINA>` :
+corps vidé, en-tête tokenisé (`{{PRODUCT}}`, `{{DOCTITLE}}`, `{{DOCID}}`,
+`{{VERSION}}` — substitués par `_lib.docx_reference_for()`), jeu de styles complété
+avec ceux de pandoc (sans eux LibreOffice rend les tableaux vides), titres au ras
+de la marge (les exporteurs numérotent dans le texte), chapitre sur nouvelle page,
+style `Table` à bordures simples et en-tête gris, quatre styles `Requirement*`.
+Largeur et centrage des tableaux ne peuvent pas venir du modèle :
+`_lib.finish_docx()` les fixe après pandoc (pleine largeur du texte, centré,
+lignes insécables). Tous les exporteurs l'appellent.
+
+## §4.1 — paramètres sans provenance code
+
+La table des paramètres figés/bornés du SRS n'a pas de colonne « Source » (classe,
+module) : une spécification se rédige avant le code. La provenance reste dans
+`parameters[].source` du store et n'est rendue que dans le registre §3.8 du SDD
+(`render_parameters_table(..., with_source=False)` côté SRS).
+
+## Lint `altitude` (export SRS, `--release`)
+
+Refuse un énoncé de plus de 90 mots, un énoncé portant une liste ou un `shall`,
+plus de 8 critères d'acceptation. Les exigences `kind: process` sont exemptées de
+la limite de mots. Règle de rédaction : agent `requirements-writer`, « Altitude ».
 
 ## Rendu .docx (optionnel)
 

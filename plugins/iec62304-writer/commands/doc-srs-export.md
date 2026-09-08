@@ -52,7 +52,8 @@ ne pas masquer.
 ### 3. Rendu .docx (si applicable)
 
 Le script `build_srs_export.py` invoque pandoc lui-même si
-`dt-config.yaml: rendering.reference_docx` est défini et pandoc est
+`docs/srs-domain-introductions.md` (facultatif) fournit l'introduction de chaque
+thématique §2.2.k. `dt-config.yaml: rendering.reference_docx` est défini et pandoc est
 disponible. Pas d'action côté Claude.
 
 ### 4. Synthèse à l'utilisateur (≤ 12 lignes)

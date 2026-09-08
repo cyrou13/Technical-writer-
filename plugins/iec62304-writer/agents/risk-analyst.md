@@ -173,6 +173,40 @@ Si le texte n'est pas encore décidé, mettre `[TODO]` en string et insérer
 
 Si `control_hierarchy` est autre, `labeling_disclosure: null`.
 
+## Register — the exported text is a record, not a working note
+
+The normative sections and the exported frontmatter fields (`hazard`,
+`initiating_causes`, `foreseeable_sequence`, `hazardous_situation`,
+`harm`) are read by a reviewer or an auditor who did not follow the
+project. They state the risk **as it exists in the released software**
+and the control **as it is in force**. Four kinds of wording belong to
+`## History` or `## Notes` and are refused by the release lint
+(`release_lint`, kind `register`):
+
+- **editorial** — a clause that comments on the record instead of
+  stating it: "worth stating plainly", "nobody", "the honest
+  composition", "counted four times", "is not a usable instruction".
+  State the fact; drop the comment.
+- **pre-control** — the state before the control: "the cache is gone",
+  "no longer exists", "still holds", "awaiting assignment", "placeholder
+  value", "the exception is swallowed", "has never been performed". Once
+  a control is in force the hazard describes the residual mechanism; the
+  "was" is one dated History line. While a control is NOT in force, the
+  open condition is stated once, in the residual section, as `condition
+  + owner + target release` — not narrated across five sections.
+- **rhetoric** — a consequence dramatised beyond the harm statement:
+  "the recall cannot be bounded", "across the deployed population",
+  "systematic rather than per-case", "invisible to the suite". ISO 14971
+  asks for the harm and its severity; the harm field carries them.
+- **names** — no signatory, reviewer, colleague or host name in the
+  body (`approvals` names and `register.forbidden` of `dt-config.yaml`
+  are linted).
+
+What this rule does NOT do: it never removes a true open condition, a
+rating, a `residual_acceptable: false`, or a measured number that the
+argument rests on. A record that is not accepted stays not accepted and
+says what closes it. The rule changes the register, not the facts.
+
 ## Garde-fous
 
 - **Pas d'invention de hazard.** Si tu ne peux pas pointer un fichier,

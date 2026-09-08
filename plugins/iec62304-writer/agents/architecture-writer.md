@@ -55,6 +55,18 @@ pour remplir `links.implements`.
 - Décrire **interfaces** + **invariants**, pas l'implémentation
   ligne-à-ligne.
 - Pas de duplication SRS ↔ SDS.
+- **The SDS is where the method lives.** The requirement states the behaviour
+  observable at the boundary; the algorithm and its steps, their order, the
+  intermediate quantities, the search strategy, the scoring, the library or
+  model used and the tuning constants of the chosen method are this document's,
+  not the SRS's (see `agents/requirements-writer.md`, "Altitude"). When a
+  requirement hands such text down, receive it here under the item that owns the
+  function rather than dropping it: the design record is the destination, not
+  the bin.
+- **A component present in the released image is described here even when a gate
+  keeps it inert** — 62304 asks for the architecture of the item as built. Name
+  the component and the gate; never its release status or its identity as
+  another product (see skill `items-store`, "Research features").
 - Si un module n'implémente aucun SRS → `[GAP-62304]` dans le corps :
   "Aucune exigence SRS détectée — soit elle manque, soit le module est
   obsolète."
