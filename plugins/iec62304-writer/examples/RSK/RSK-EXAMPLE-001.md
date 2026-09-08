@@ -1,123 +1,109 @@
 ---
 id: RSK-EXAMPLE-001
-title: Example — session hijacking via predictable OAuth2 state
+title: Example — session hijack through a predictable OAuth2 state
 status: Draft
-version: 2.0.0
+version: 1.0.0
 created: 2026-05-07
-updated: 2026-05-11
-
+updated: 2026-05-07
+reviewed: null
+owner: null
+target_release: null
 risk_category: Design
-software_function: User authentication
+software_function: user authentication
 software_item: src/auth/oauth.ts
-
-hazard: Predictable OAuth2 state enabling CSRF on the callback
+hazard: predictable OAuth2 state enabling CSRF on the callback
 initiating_causes: |
-  - Developer uses a non-cryptographic randomness source (e.g. timestamp, counter) for `state`.
-  - Library default produces low-entropy state shorter than 128 bits.
+  - state derived from a timestamp or a counter
+  - state not bound to the pre-session
 foreseeable_sequence: |
-  (1) The application generates a predictable `state` value at /auth/login.
-  (2) An attacker, already authenticated against the IdP, crafts a callback URL with a guessed `state`.
-  (3) The victim, while authenticated against the IdP, clicks the forged link.
-  (4) The application accepts the callback and binds the attacker's identity to the victim's session — hazardous situation reached.
-hazardous_situation: The victim's browser holds a session bound to the attacker's IdP identity, without the victim noticing.
-harm: Unauthorized access to the victim's account, with the same privileges as the victim (data exfiltration, action on behalf of the victim).
-
+  (1) the attacker predicts the state value expected by the callback
+  (2) the attacker sends the victim a forged callback link
+  (3) the victim, already authenticated at the provider, follows it
+hazardous_situation: the victim's browser completes a callback the attacker prepared
+harm: session hijack, unauthorised access to the user's account and data
 severity: Serious
 probability: Remote
 risk_level: Medium
 acceptable: false
-
 control_hierarchy: inherent_design
-
 residual_probability: Improbable
 residual_severity: Serious
 residual_risk_level: Low
 residual_acceptable: true
-
 arising_risks: []
 labeling_disclosure: null
-
 source:
   - src/auth/oauth.ts
 links:
   parent: []
 ---
 
+<!-- Exported (risk analysis). Normative sections state the risk as currently assessed. No dates, no "re-assessed on", no markers. -->
 ## Hazard
 
-An OAuth2 `state` generated non-cryptographically allows an attacker to
-predict the expected callback value and fix the victim's session. ISO
-14971 hazard = "session integrity loss via predictable cross-site
-request forgery token".
+An OAuth2 `state` generated without a cryptographic source lets an
+attacker predict the value the callback expects and fix the victim's
+session.
 
 ## Initiating causes
 
-- The developer uses a non-cryptographic randomness source (e.g.
-  `Date.now()`, an incremental counter) for the `state` parameter.
-- A library default produces low-entropy state values (< 128 bits).
+- `state` derived from a timestamp or a counter.
+- `state` not bound to the pre-session that started the flow.
 
 ## Foreseeable sequence of events
 
-(1) The application generates a predictable `state` value at the
-    `/auth/login` redirect.
-
-(2) An attacker, already authenticated against the IdP, crafts a
-    callback URL `/auth/callback?code=...&state=<guessed>`.
-
-(3) The victim — who is already authenticated against the IdP — clicks
-    the forged link (phishing, embedded image, redirect chain).
-
-(4) The application accepts the callback and binds the attacker's IdP
-    identity to the victim's session. The hazardous situation is reached.
+1. The attacker predicts the `state` the callback will accept.
+2. The attacker sends the victim a forged callback link.
+3. The victim, already authenticated at the identity provider, follows it.
 
 ## Hazardous situation
 
-The victim's browser holds a session bound to the attacker's IdP
-identity, without the victim noticing. The victim's actions are now
-attributed to the attacker; the attacker's data is exposed to the
-victim's UI, and vice versa.
+The victim's browser completes a callback the attacker prepared.
 
 ## Harm
 
-Unauthorized access to the victim's account, with the same privileges
-as the victim: data exfiltration, transactions on behalf of the victim,
-audit log poisoning.
+Session hijack: the attacker gains access to the user's account and to
+the data it can reach.
 
 ## Initial risk justification
 
-Severity `Serious` — privacy breach + unauthorized access to clinical
-or operational data; reversible only by full session invalidation +
-incident communication. Probability `Remote` — requires the attacker
-to be authenticated against the same IdP AND to phish the victim
-successfully. Initial risk index = 3 × 2 = 6 → `Medium` per the
-acceptability matrix → not acceptable without controls.
+Severity `Serious` — privacy breach and unauthorised access. Probability
+`Remote` — requires social engineering and an authenticated provider
+session. Initial risk `Medium`, not acceptable without a control.
 
 ## Risk controls
 
-Chosen `control_hierarchy: inherent_design` — the predictability is
-eliminated at the design level rather than detected post-hoc.
+- SRS-EXAMPLE-001 — `state` is generated from a cryptographic source with
+  at least `oauth_state_min_entropy` (256 bit), stored server-side and
+  compared strictly on the callback; PKCE with the `S256` method in
+  addition (tier: inherent_design — the hazard is removed from the
+  design, so no lower tier is needed).
+- SDS-EXAMPLE-001 — the module binds the stored `state` to the
+  pre-session that started the flow (tier: inherent_design).
 
-- Cryptographic generation of `state` (≥ 256 bits of entropy via
-  `crypto.randomBytes` / `secrets.token_urlsafe`).
-- Strict verification at callback: the received `state` must match the
-  `state` stored server-side and bound to the pre-auth session.
-- PKCE `S256` as a complementary control (mitigates other CSRF vectors).
+TC-EXAMPLE-001 verifies SRS-EXAMPLE-001; its bound status is the
+evidence of the control, printed by the RAR next to the SRS.
 
-Formal controls live in the items whose `links.mitigates:
-[RSK-EXAMPLE-001]` — here `SDS-EXAMPLE-001` and `TC-EXAMPLE-001`.
-No higher-tier control (i.e. removing OAuth2 entirely) is practicable
-because OAuth2 is mandated by the upstream MAP requirement.
-
+<!-- Exported. The residual argument stays here, undated. A revision of the argument is noted in History. -->
 ## Residual risk justification
 
-After controls, the predictability is eliminated entirely — an attacker
-cannot guess the `state`. Residual probability drops to `Improbable`
-(requires a brute-force search of the entropy space, infeasible).
-Residual severity stays `Serious` because the impact of an unlikely
-success is unchanged. Residual risk index = 3 × 1 = 3 → `Low` → acceptable.
+With a cryptographic `state` bound to the pre-session and verified on the
+callback, a forged callback cannot be validated: the probability moves
+from `Remote` to `Improbable` (severity unchanged, `Serious`, since the
+harm is the same if the control fails) and the residual risk is `Low`.
 
+<!-- Internal, never exported. -->
 ## Notes
 
-Example item. Illustrates the full ISO 14971 §C.2 causal chain
-(`initiating_causes` → `foreseeable_sequence` → `hazardous_situation` →
-`harm`) and the ISO 14971 §7.2 control hierarchy.
+Example item shipped with the scaffold. It shows how an SRS, an SDS and a
+TC mitigate one RSK and how the coverage matrix reflects it.
+
+<!-- Internal, never exported. `[GAP-62304]` markers are allowed here and in History only. -->
+## Open questions
+
+- None.
+
+<!-- Internal, never exported. Every re-assessment, decision and change note, dated, newest first. -->
+## History
+
+- 2026-05-07 v1.0.0 — created as a scaffold example.

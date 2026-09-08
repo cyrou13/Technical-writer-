@@ -9,6 +9,26 @@ All artifacts written by this command (the STDR Markdown, the optional
 the user's conversational language or any global `CLAUDE.md` instruction.
 Conversational replies MAY follow the user's language.
 
+## Modes and release gate
+
+| Mode | Cover | Open points | `[TODO]` markers | Gate |
+|---|---|---|---|---|
+| (none) / `--strict` | `WORKING DRAFT — generated <date>` | omitted | yellow `<mark>` for the QMS author (`--strict` exits non-zero on any) | reported, never blocking |
+| `--internal` | `WORKING DRAFT — generated <date>` | appended as a register | yellow `<mark>` | reported, never blocking |
+| `--release` | document identifier (`documents.<x>`), version label, date and signatures from `dt-config.yaml` | never | refused | the gate of skill `submission-readiness` (DC-1…4, TL-1…14, SL-1…14) runs first; the export is **refused** and no file is written when any rule fails; DEC-1/2 are reported, never blocking |
+
+`--release` and `--internal` are mutually exclusive. The rendering
+follows the contract of skill `items-store`: internal sections
+(`## Notes`, `## Open questions`, `## History`, a legacy
+`## Changelog`) and HTML comments are stripped, each item is rendered
+once, no per-item version is printed, and the unresolved-anomalies
+appendix (a dated record) is exported in every mode while the
+open-points register is `--internal` only. The scaffolded
+`tools/build_*_export.py` are the working-draft generation and do not
+implement `--release`; the reference exporters synced from the CINA-CTP
+repository do (`tools/README.md`). Without them, `--release` states
+that no deliverable can be produced.
+
 Exécute `python tools/build_stdr_export.py` à la racine du repo cible et
 rapporte les résultats.
 

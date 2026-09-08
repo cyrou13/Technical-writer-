@@ -1,25 +1,37 @@
 <!--
-  Narrative framing sections of the Software Requirements Specification.
+  Narrative sections inlined into the deliverables by the exporters.
   These sections do NOT come from code — they come from the QMS, the
-  Intended Use document, and the Risk Management File.
+  Intended Use document, and the Risk Management File. Each `## <anchor>`
+  below is a section the exporters look up by its slug; any other H2 is
+  ignored. Edit by hand — no agent touches this file except where stated.
 
-  `/doc-srs-export` inlines the sections below at fixed anchors of the final
-  deliverable (see anchors next to each H2). Any H2 not listed here is
-  ignored. Edit by hand — no agent touches this file.
+  Everything in this file is EXPORTED: present tense, no dates, no
+  `[TODO`/`[DRAFT`/`[GAP-` markers, no commit hashes, no competitor names.
+  A `[TODO …]` left below shows in the working draft by design and blocks
+  a `--release` export (TL-1). A remark you want to keep goes in an HTML
+  comment like this one — the exporters strip it.
 
-  Recognized sections (consumed by /doc-srs-export — SRS deliverable):
+  Recognized sections (consumed by /doc-srs — SRS deliverable):
     ## document-overview         → §1.1
     ## abbreviations             → §1.2.1 (free-form text or markdown table)
-    ## glossary                  → §1.2.2
+    ## glossary                  → §1.2.2 — one term per concept, the labeling's term (TL-13)
     ## intended-use              → §2.1.2
     ## warnings-and-precautions  → §2.1.3
     ## connected-devices         → §2.1.4
     ## personnel-and-training    → §2.x (placed after the main requirements)
     ## packaging                 → §2.x (placed after the main requirements)
 
-  Additional sections (consumed by /doc-risk-export — Risk Report):
-    ## end-users                            → §2.2 of Risk Report
-    ## characteristics-affecting-safety     → §2.3 of Risk Report (ISO TR 24971)
+  Sections REQUIRED by the SDD export (/doc-sdd; store lint SL-6):
+    ## general-system-architecture, ## run-states, ## architecture-rationale,
+    ## security-global-view, ## security-multi-patient-view,
+    ## security-updateability-view, ## security-use-case-views
+  The architecture-writer fills the first three and drafts the four
+  security views from the code; the security-analyst completes the views;
+  a human reviews all six. Leave a section empty rather than invent.
+
+  Additional sections (consumed by /doc-risk — Risk Analysis Report):
+    ## end-users                            → §2.2 of the Risk Report
+    ## characteristics-affecting-safety     → §2.3 of the Risk Report (ISO TR 24971)
 
   Software Design Description (consumed by /doc-sdd-export):
     ## general-system-architecture          → §2
@@ -57,6 +69,20 @@
     ## patient-population                   → UEF §2.2.2
     ## application-environment              → UEF §2.2.4 (use environment)
     ## resource-requirements                → UEF §2.2.5 (hardware/software requirements)
+
+  Other anchors the STP / STDR / STR exporters recognise (optional):
+    hardware-and-software-requirements, processing-workflow,
+    application-workflow, error-code-standardization, class-diagram,
+    cots-control, test-environment-overview, tests-identification-strategy,
+    tests-schedule, qualification, test-preparation-data,
+    test-preparation-environment, test-preparation-tools,
+    automated-tests-platform, local-tests-platforms, rationale-for-decisions.
+  A section may also be supplied from a QMS-managed file through
+  `dt-config.yaml: external_resources`.
+
+  Labeling anchors (`intended-use`, `warnings-and-precautions`) are never
+  edited to make a lint finding go away: a contradiction between them and
+  the SRS is a DECISION finding (DEC-1/2) for the product owner / RAQA.
 -->
 
 ## document-overview
@@ -215,3 +241,24 @@ the device safely. Examples:
 For pure SaaS platforms, state the client-side requirements
 (browser version, network bandwidth, screen resolution) AND the
 server-side requirements separately.]
+
+<!-- REQUIRED (SDD). The component diagram (Mermaid) and one paragraph per component: what it does, what it talks to. -->
+## general-system-architecture
+
+<!-- REQUIRED (SDD). The state machine of the software — idle, receiving, processing, exporting, error, maintenance — with entry and exit conditions and what is observable in each state. -->
+## run-states
+
+<!-- REQUIRED (SDD). Why the architecture is what it is. The module-level `## Design notes` roll up here; alternatives discarded; no dates. -->
+## architecture-rationale
+
+<!-- REQUIRED (SDD; FDA premarket cybersecurity guidance, global system view). One diagram with every network interface, port and protocol, every trust boundary and authentication point, each data store with its protection at rest and in transit, where secrets live. One paragraph per boundary. -->
+## security-global-view
+
+<!-- REQUIRED (SDD; multi-patient harm view). How one patient's data and results are isolated from another's on the same instance: session scope, identifiers, storage separation, cleanup, what a cross-patient failure would look like. -->
+## security-multi-patient-view
+
+<!-- REQUIRED (SDD; updateability / patchability view). How software and OTS updates are delivered, authenticated (signature), applied and rolled back; who can trigger one; device behaviour during an update; OTS end-of-life handling. -->
+## security-updateability-view
+
+<!-- REQUIRED (SDD; security use-case views). One diagram per security-relevant use case — ingest, export, administer, update, support access — showing the actors, the data crossing each boundary and the control that protects the crossing. -->
+## security-use-case-views

@@ -1,58 +1,65 @@
 # iec62304-writer
 
-Plugin Claude Code pour générer et maintenir la documentation technique
-IEC 62304 (Classe A) à partir d'un codebase TypeScript/JavaScript +
-Python — **sans dépendance à un service externe**. Reproduit localement
-les features utiles de Matrix Requirements (items à ID stable,
-traçabilité N:N, matrice de couverture, statuts), avec analyses de
-risques **safety** (ISO 14971), **cyber** (IEC 81001-5-1 / STRIDE) et
-**usability** (IEC 62366-1 — UEF + Summative Evaluation + IECEE
-checklist) séparées. L'export usability supporte deux templates :
-`platform-rich` (tabulaire, multi-persona — SaaS, frontends riches) et
-`clinical-narrow` (narratif 6 étapes — AI clinique étroit type Avicenna
-CSpine).
+A Claude Code plugin that generates and maintains the IEC 62304 (class A)
+technical file of a software medical device from its TypeScript/JavaScript
++ Python codebase — **with no external service**. It reproduces locally
+the useful features of Matrix Requirements (stable-ID items, N:N
+traceability, coverage matrix, statuses), with separate **safety**
+(ISO 14971), **production** (AAMI TIR57 / IEC 81001-5-1 §6.1), **cyber**
+(IEC 81001-5-1 / STRIDE) and **usability** (IEC 62366-1 — UEF + Summative
+Evaluation + IECEE checklist) risk analyses, RAQA-ready exports (SRS, SDD,
+STP, STDR, STR, Risk Analysis Report, Risk Table xlsx, UEF / USE /
+UEF-Annex1), a migration recipe for already-initialised projects, and —
+since 0.15.0 — a **submission contract** with a gated `--release` export,
+so that what leaves the repository reads as a signed technical file and
+not as an engineering journal. The usability export supports two
+templates: `platform-rich` (tabular, multi-persona — SaaS, rich
+frontends) and `clinical-narrow` (6-step narrative — narrow clinical AI).
 
-## Langue des artefacts générés
+## Language of the generated artefacts
 
-Tous les fichiers produits par le plugin sous `docs/` (items MAP / SRS /
-SDS / TC / RSK / PRSK / THR / USC / URSK, agrégats
-`docs/generated/*.md`, livrables `docs/export/*.{md,docx,csv,xlsx}`,
-rapports de revue, markers `[TODO]`/`[GAP-...]`) sont **rédigés en
-anglais**, indépendamment de la langue de la conversation avec
-Claude Code. Cette contrainte est forcée à chaque couche (commandes,
-sub-agents, skills, templates) pour garantir des livrables conformes
-IEC 62304 dans la langue de référence des normes.
+Every file the plugin produces under `docs/` (MAP / SRS / SDS / TC / RSK /
+PRSK / THR / USC / URSK items, `docs/generated/*.md` aggregates,
+`docs/export/*.{md,docx,csv,xlsx}` deliverables, review reports, `[TODO]`
+/ `[GAP-…]` markers) is **written in English**, whatever the language of
+the conversation with Claude Code. The constraint is enforced at every
+layer (commands, sub-agents, skills, templates) so the deliverables are in
+the reference language of the standards.
 
 ## Installation
 
-### Depuis GitHub (recommandé)
+### From GitHub (recommended)
 
 ```bash
-# Dans Claude Code, depuis n'importe quel repo :
+# Inside Claude Code, from any repository:
 /plugin marketplace add cyrou13/technical-writer
 /plugin install iec62304-writer@iec62304-writer-marketplace
 ```
 
-### Depuis un chemin local
+### From a local checkout
 
 ```bash
-/plugin install /chemin/vers/technical-writer
+/plugin install /path/to/technical-writer
 ```
 
-Puis dans le repo cible :
+Then, in the target repository:
 
 ```bash
-/doc-init                  # scaffolde tools/build_docs.py + dt-config.yaml + docs/templates/
-/doc-init --with-examples  # idem + items d'exemple liés (MAP/SRS/SDS/TC/RSK/THR)
-/doc-62304                 # pipeline complet : codemap → SRS/SDS/TC/RSK/THR → build → revue
-/doc-srs-export            # livrable RAQA-ready (cover, signataires, traçabilité §3 → MAP)
+/doc-init                  # scaffold: tools/*.py, dt-config.yaml, docs/templates/, docs/ots.yaml,
+                           #           docs/dt-clinical-context.md, docs/test_plan_intro.md, docs/items/
+/doc-init --with-examples  # same, plus linked example items (MAP/SRS/SDS/TC/RSK/PRSK/THR)
+/doc-62304                 # full pipeline: codemap → SRS/SDS/TC → RSK/PRSK/THR/USC/URSK → pass 2 → build → review
+/doc-update [Vx.y]         # incremental update after the code changed
+/doc-item SRS-AUTH-001 "…" # one item
+/doc-build [--strict | --internal | --release]
+/doc-srs-export --release  # gated, signed SRS deliverable (cover, signatories, §3 traceability → MAP)
 ```
 
-### Note sur le namespace des slash commands
+### A note on the slash-command namespace
 
-Selon ta config Claude Code (cache plugin, mode profile, plusieurs
-plugins chargés), il peut être nécessaire de **préfixer chaque
-commande par le namespace du plugin** :
+Depending on your Claude Code setup (plugin cache, profile mode, several
+plugins loaded) you may have to **prefix each command with the plugin
+namespace**:
 
 ```bash
 /iec62304-writer:doc-init
@@ -61,507 +68,723 @@ commande par le namespace du plugin** :
 # etc.
 ```
 
-Si Claude Code te dit `Unknown command: /doc-init`, c'est le cas —
-utilise toujours la forme préfixée. Toutes les commandes de ce README
-s'utilisent indifféremment avec ou sans le préfixe `iec62304-writer:`
-selon ton setup.
+If Claude Code answers `Unknown command: /doc-init`, that is the case —
+use the prefixed form. Every command in this README works with or without
+the `iec62304-writer:` prefix.
 
-## Livrables produits
+## Why the submission contract — round 1
 
-| # | Fichier | Norme | Contenu |
+Two FDA-style reviews of an SRS and an SDD generated by the plugin found
+defects that traced to the plugin's conventions, not to the writers:
+
+- documents were signed on `document.date` while items carried later
+  `updated:` dates and the revision history was never extended — there
+  was no document-control gate;
+- the templates put rationale, open questions and a tick-box checklist
+  of acceptance criteria in the item, and the writers appended
+  `## Changelog` lines and dated closure text in the body — so the
+  exported requirement text was half history and the tick-boxes read as
+  verification status;
+- the risk and usability agents wrote dated "re-assessed …" paragraphs
+  and `[GAP-*]` / `[DRAFT …]` markers that ended up in the customer-facing
+  export;
+- there was no notion of requirement kind, so the performance,
+  interface, platform, usability, security and process sections never
+  existed;
+- there was no registry of frozen constants, so numbers were repeated as
+  literals and drifted between items;
+- OTS / SOUP identification was left to prose;
+- there were no cybersecurity architecture views (FDA premarket
+  cybersecurity guidance, September 2023);
+- the SDD rendered each item three times;
+- the open-points register was exported as an appendix of the
+  deliverable;
+- competitor names and code / test paths leaked into the SRS.
+
+## Why the submission contract — round 2
+
+A second FDA-style review of the six deliverables (SRS, SDD, RAR, STP,
+STDR, STR) found conventions no generator enforced:
+
+- the parameter registry carried code paths as sources, a list value
+  truncated to its first element, one constant under two names, and
+  frozen parameters that no requirement described;
+- requirement ids were bold text, not headings; the kind sections
+  summarised each requirement from its first sentence and diverged from
+  the body; every item printed its own version next to the document's;
+- a dozen acceptance criteria were statuses, test ids, decision ids or
+  "placeholder until RAQA assigns", tolerances were "about" and "~85 %",
+  and measurements stood where bounds belonged;
+- one concept had four names across requirements, labeling and report
+  strings;
+- the SDD put normative design in the rationale appendix and rationale
+  in the body, left §3.8 empty, declared the environment twice with two
+  counts, and described modules by naming their features without a
+  formula;
+- threat records showed a STRIDE letter and a CIA table but no threat
+  description, no attack path and TC ids as controls;
+- the RAR printed mitigations as bare id lists with no residual
+  argument, accepted residuals with an unchanged index, credited a
+  warning as risk reduction, and described the pre-control state — with
+  a person's and a host's name — as the hazard;
+- the risk scales were names mapped to integers, so a regulatory breach
+  rated like a neurological injury, and the class argument listed each
+  risk twice;
+- the OTS table had numpy twice (pip and conda), functions the code
+  never imported, a boilerplate hazard review claiming pip-audit covered
+  conda C libraries, no base-image row, and a second inventory in prose;
+- no deliverable had an unresolved-anomalies appendix while an xfail
+  test, two non-accepted threats and the decision record's open actions
+  were scattered across them;
+- 102 of 120 test cases had "Run pytest <file>" as their only step,
+  pytest-level skips hid inside passed cases, the STR printed no
+  software version, run mode, host or conclusion, and the STDR grouped a
+  test under the domain of the requirement it verified;
+- the STP was titled after the SRS and cited itself under another
+  document number;
+- stripping a hash or an issue reference left "(open issue" behind;
+- and a labeling warning named outputs the SRS forbids while the
+  intended use omitted the indication every threshold encodes — a
+  contradiction for the product owner and RAQA, not for a writer.
+
+Each is now a rule (TL-11…14, SL-8…14, DEC-1/2 in
+`submission-readiness`), stated once in the template a writer reads, and
+mirrored by the reference exporters (`scaffold/tools/README.md`, "Round-2
+behaviours").
+
+## The contract
+
+Stated in full in the skills `items-store` and `submission-readiness`;
+every template, agent and command applies it.
+
+**Sections.** An item body has *normative* sections, which the exporters
+render, and *internal* sections, which never leave the repository.
+
+| Category | Normative (exported) | Internal (never exported) |
+|---|---|---|
+| SRS | `## Description`, `## Acceptance criteria` (numbered list, never tick-boxes) | `## Notes`, `## Open questions`, `## History` |
+| SDS | `## Responsibility`, `## Interfaces`, `## Invariants`, `## Design`; `## Design notes` rendered once in the SDD rationale appendix | same |
+| TC | `## Preconditions`, `## Steps`, `## Expected results` | same |
+| RSK / PRSK / THR / URSK / USC / MAP | their standard sections | same |
+
+> Normative sections state the present behaviour, design or assessment
+> only. Every date, decision, re-argument, closure note and change note
+> goes to `## History` (which replaces `## Changelog`). Markers `[TODO`,
+> `[DRAFT`, `[GAP-` are allowed only in internal sections. Inline
+> commentary goes in `<!-- HTML comments -->`, which the exporters strip.
+
+**Frontmatter.** SRS carry `kind:` ∈ functional | performance |
+interface | platform | usability | safety | security | process — the
+exported SRS has one section per kind in use, so a missing kind is
+visible. SRS and SDS declare every constant they own in `parameters:`
+(`name`, `value`, `unit`, `settable`, `interval`, `source` — prose or a
+dotted symbol, never a path) — one name, one owner, described by its
+owner; the registry is rendered in SRS §4.1 and SDD §3.8. SRS and SDS
+name their sources in `references:` (ids of `dt-config.yaml:
+references`). TC `test_id` must resolve to a test that exists; `steps`
+are a procedure and `expected` one clause per test function; a planned
+TC is never coverage.
+
+**Registries.** Third-party components are identified in
+`docs/ots.yaml` only (`component`, `version`, `supplier`, `role`,
+`safety_relevant`, `functions_used`, `hazard_review`, `verification`,
+`eol_status`, `sbom_ref`, optional `supersedes`) — one row per
+installed component at exact version, the base image included.
+`dt-config.yaml` carries `documents:` (one identifier per deliverable),
+`references:`, `classification.severity_definitions` /
+`probability_definitions` (harm-based) and `anomalies:` (the decision
+record whose open actions feed the unresolved-anomalies appendix). The
+SDD requires six narrative sections of `docs/dt-clinical-context.md`:
+`general-system-architecture`, `run-states`, `architecture-rationale`
+and the four cybersecurity views `security-global-view`,
+`security-multi-patient-view`, `security-updateability-view`,
+`security-use-case-views`.
+
+**Not in an item.** Competitor names; code or test paths in SRS text;
+commit hashes, dates, "as of", "re-assessed on" in normative text; OTS
+versions or suppliers in prose.
+
+## The release gate
+
+`/doc-build` and every `/doc-*-export` command have three modes:
+
+| Mode | Cover | Open points | `[TODO]` markers | Gate |
+|---|---|---|---|---|
+| (none) / `--strict` | `WORKING DRAFT — generated <date>` | omitted | rendered as yellow `<mark>` for the author | reported, never blocking (`--strict` exits non-zero on open markers, class A severities and unaccepted residuals) |
+| `--internal` | `WORKING DRAFT — generated <date>` | appended as a register | rendered as yellow `<mark>` | reported, never blocking |
+| `--release` | document identifier, version label, date and signatures from `dt-config.yaml` | never | **refused** | **refused** unless every rule passes |
+
+The gate (skill `submission-readiness`) refuses a release export when:
+
+- **DC-1…4** any exported item's `updated` / `reviewed` postdates
+  `document.date`; `revision_history` lacks `document.version_label`
+  at `document.date`; history dates are not increasing; an exported
+  item is still `Draft` in maintenance mode;
+- **TL-1…10** exported text carries `[TODO` / `[DRAFT` / `[GAP-`, an
+  ISO date, a commit hash, a term of `lint.forbidden_terms` (competitor
+  names), a tick-box, or — in the SRS — a code or test path; an internal
+  section or a legacy `## Changelog` would be rendered; an item would be
+  rendered more than once; the open-points register would be appended;
+- **SL-1…7** a parameter name has two values; an SRS has no valid
+  `kind`; a `depends_on` entry is not an `ots.yaml` key or a registry
+  field is missing; a `test_id` does not resolve; a link points to a
+  missing or Deprecated item; a required clinical-context anchor is
+  empty; a risk item breaks the class rules;
+- **TL-11…14, SL-8…14** a criterion that is a status or an id; a
+  dangling "(open issue"; two terms for one concept; a per-item version
+  or a derived summary in an export; a parameter source that is a path
+  or a name with two owners; an unknown reference id; document
+  identifiers that disagree with `project_references`; risk scales
+  without harm definitions or a residual accepted with an unchanged
+  index and no rationale; duplicate OTS rows or a second inventory; a
+  THR without its four sections or a TC id as a control; a TC whose
+  steps are "run pytest" or whose skips are folded into passed.
+
+**DEC-1/2** (labeling vs specification) are reported first, at DECISION
+level for the product owner / RAQA, and never block or get edited away.
+
+`/doc-build --release` runs the gate before calling any exporter and
+never calls one when the store is not clean; the `compliance-reviewer`
+reports the offenders first in `99_compliance_review.md`.
+
+**Two generations of exporters.** `/doc-init` scaffolds a working set of
+`tools/build_*_export.py` (the `--strict` / `--md-only` generation: they
+render `[TODO]` markers in yellow and know nothing of the gate). The
+reference exporters that enforce the contract (`_lib.py`,
+`build_srs_export.py`, `build_sdd_export.py`, `build_stp_export.py`,
+`build_stdr_export.py`, `build_str_export.py`, `build_risk_export.py`,
+`build_open_points.py`, `build_rationale.py`, `bind_test_results.py`)
+are maintained in the CINA-CTP repository and are synced over the
+scaffolded copies — see `plugins/iec62304-writer/scaffold/tools/README.md`.
+Until they are synced, `--release` states that no deliverable can be
+produced and the reviewer applies the rules by hand.
+
+## Deliverables
+
+| # | File | Standard | Content |
 |---|---|---|---|
 | 10 | `docs/generated/10_SRS.md` | IEC 62304 §5.2 | Software Requirements |
 | 20 | `docs/generated/20_SDS.md` | IEC 62304 §5.3-§5.4 | Design & architecture |
 | 30 | `docs/generated/30_STD.md` | IEEE 829 / §5.5/§5.7 | Software Test Description |
-| 40 | `docs/generated/40_traceability.md` | §5.1.1 / §5.2.6 | Matrice SRS↔SDS↔TC |
-| 50 | `docs/generated/50_risk_analysis.md` | ISO 14971 / §7 | Risques safety |
-| 60 | `docs/generated/60_cyber_risk_analysis.md` | IEC 81001-5-1 / STRIDE | Risques cyber |
+| 40 | `docs/generated/40_traceability.md` | §5.1.1 / §5.2.6 | SRS↔SDS↔TC matrix |
+| 50 | `docs/generated/50_risk_analysis.md` | ISO 14971 / §7 | Safety risks |
+| 60 | `docs/generated/60_cyber_risk_analysis.md` | IEC 81001-5-1 / STRIDE | Cyber risks |
 | 70 | `docs/generated/70_usability_analysis.md` | IEC 62366-1 | Use scenarios + use-related risks |
-| — | `docs/generated/_to_implement.md` | — | Backlog actionnable A/B/C/D/E |
-| — | `docs/generated/coverage.json` | — | Métriques machine-readable |
-| 99 | `docs/generated/99_compliance_review.md` | — | Revue de conformité |
-| Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ `.docx` optionnel) | — | Livrable QMS-ready (cover signataires, revision history, §1 framing, §2 requirements, §3 traçabilité → MAP). Produit par `/doc-srs-export`. |
-| Export | `docs/export/<doc-id>-<vXX>-UEF.md` + `-USE.md` + `-UEF-Annex1.md` (+ `.docx` optionnels) | IEC 62366-1 | Triplet usability QMS-ready : Usability Engineering File (use specification + risk assessment + formative + summative), Summative Evaluation (protocole + report + Annex A questionnaire), Annex 1 IECEE clause-par-clause. Produit par `/doc-use-export`. |
+| — | `docs/generated/_to_implement.md` | — | Actionable A/B/C/D/E backlog |
+| — | `docs/generated/coverage.json` | — | Machine-readable metrics |
+| 99 | `docs/generated/99_compliance_review.md` | — | Compliance review — DECISION findings first, then gate offenders, then coverage |
+| Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ optional `.docx`) | IEC 62304 §5.2 | QMS-ready SRS (signed cover, revision history, §1 framing with references table, §2 requirements — one section per kind, each requirement a heading, §3 traceability → MAP, §4.1 parameter registry). `/doc-srs-export`. |
+| Export | `docs/export/<doc-id>-<vXX>-SDD.md` (+ `.docx`) | IEC 62304 §5.3-§5.4 | Software Design Description (modules rendered once, §3.8 parameter registry, OTS table from `docs/ots.yaml`, the six narrative sections, threat records, rationale appendix, unresolved-anomalies appendix). `/doc-sdd-export`. |
+| Export | `docs/export/<doc-id>-<vXX>-STP.md`, `-STDR.md`, `-STR.md` (+ `.docx`) | IEEE 829 / §5.5 / §5.7 | Test Plan / Test Description and Reports / Test Report — each under its own `documents.<x>` identifier; STDR and STR carry the run metadata of the bound run. `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`. |
+| Export | `docs/export/<doc-id>-<vXX>-RAR.md` (+ `.docx` + `.csv`) | ISO 14971 / IEC 81001-5-1 / IEC 62366-1 | Risk Analysis Report (harm-based scales, per-record controls and residual argument, threat records, class argument). `/doc-risk-export`. |
+| Export | `docs/export/<doc-id>-<vXX>-RISK-TABLE.xlsx` | ISO 14971 | 4-tab Excel inventory (Design / Production / Usability / Cybersecurity). `/doc-risk-xlsx`. |
+| Export | `docs/export/<doc-id>-<vXX>-UEF.md` + `-USE.md` + `-UEF-Annex1.md` (+ optional `.docx`) | IEC 62366-1 | QMS-ready usability triplet: Usability Engineering File (use specification + risk assessment + formative + summative), Summative Evaluation (protocol + report + Annex A questionnaire), Annex 1 IECEE clause-by-clause. `/doc-use-export`. |
+| — | `docs/generated/prompts/`, `docs/generated/migration-report.md` | — | Coverage-gap prompts, migration audit — never a deliverable |
 
-## Composants du plugin
+## Plugin components
 
-### Skills (référentiels et règles)
+### Skills (references and rules)
 
-| Skill | Rôle |
+| Skill | Role |
 |---|---|
-| `iec62304-class-a` | Livrables 62304 Classe A et leur contenu minimal |
-| `items-store` | Stockage local item-par-fichier (équivalent Matrix Requirements) |
-| `srs-extract` | Extraction d'exigences depuis le code |
-| `sds-generate` | Extraction de design et architecture |
-| `test-evidence` | Découverte des tests, formalisation en TC |
-| `test-plan` | Convention Software Test Description (STD) IEEE 829 |
-| `traceability-matrix` | Spec de la matrice de couverture |
-| `risk-analysis` | ISO 14971 + 62304 §7, hazards safety |
-| `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57 + STRIDE |
+| `iec62304-class-a` | Class A deliverables and their minimal content, writing rules |
+| `items-store` | The item-per-file store (Matrix Requirements equivalent) and the section / frontmatter contract — what goes where, kinds, parameters, references, the anomalies appendix vs the open-points register |
+| `submission-readiness` | The release gate: document control (DC), text lint (TL-1…14), store lint (SL-1…14), decision findings (DEC), how to run it |
+| `srs-extract` | Requirements from the code — kinds, parameters, normative text |
+| `sds-generate` | Design and architecture — Design vs Design notes, OTS registry, the six narrative sections |
+| `test-evidence` | Tests → TC items; `test_id` must exist, steps as procedures, binder statuses and run metadata |
+| `test-plan` | STD / STP / STDR / STR convention (IEEE 829) — what each export must contain |
+| `traceability-matrix` | The coverage matrix spec, existing tests only |
+| `risk-analysis` | ISO 14971 + 62304 §7 — RSK / PRSK, harm-based scales, controls with evidence, re-assessments are History |
+| `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57 + STRIDE + the four THR sections + the four architecture views |
 | `iec62366-usability` | IEC 62366-1 — use scenarios, use-related risks, summative validation |
-| `srs-export` | Spec du livrable SRS RAQA-ready à partir de `dt-config.yaml` + `dt-clinical-context.md` + items |
-| `risk-report-export` | Spec du livrable Risk Analysis Report ISO 14971 — chaîne causale §C.2, hiérarchie de contrôle §7.2, résiduel quantitatif §7.4, cascade §7.5 |
-| `production-risk-analysis` | Référence AAMI TIR57 + IEC 81001-5-1 §6.1 — risques de packaging/delivery/deployment/update (PRSK) |
-| `risk-xlsx-export` | Spec du livrable Excel 4-onglets matching le format Avicenna `annex1-RISK-TABLE.xlsx` (dépendance `openpyxl`) |
-| `mitigation-audit` | Convention d'audit code-vs-mitigation : pour chaque risque résiduel non-acceptable, déterminer `implementation_status ∈ {absent, partial, implemented}` des contrôles cités en lisant le code, annoter les SRS et autoriser le flip de `residual_acceptable` |
-| `sdd-export` | Spec du livrable Software Design Description (Avicenna `AV-DP-XXX-SDD`) |
-| `stp-export` | Spec du livrable Software Test Plan (Avicenna `AV-DP-XXX-STP`) |
-| `stdr-export` | Spec du livrable Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) avec ingestion `test-results.json` |
-| `str-export` | Spec du livrable Software Test Report synthétique (Avicenna `AV-DP-XXX-STR-auto`) |
-| `use-export` | Spec du triplet IEC 62366-1 — Usability Engineering File + Summative Evaluation + Annex 1 IECEE — avec 2 templates (`platform-rich` pour SaaS, `clinical-narrow` pour AI clinique étroit type Avicenna `AV-DP-XXX-UEF`/`USE`) |
+| `production-risk-analysis` | AAMI TIR57 + IEC 81001-5-1 §6.1 reference — packaging / delivery / deployment / update risks (PRSK) |
+| `srs-export` | Spec of the RAQA-ready SRS deliverable from `dt-config.yaml` + `dt-clinical-context.md` + items |
+| `sdd-export` | Spec of the Software Design Description deliverable |
+| `stp-export` | Spec of the Software Test Plan deliverable |
+| `stdr-export` | Spec of the Software Test Description and Reports deliverable, with `test-results.json` ingestion |
+| `str-export` | Spec of the summary Software Test Report deliverable |
+| `risk-report-export` | Spec of the ISO 14971 Risk Analysis Report — §C.2 causal chain, §7.2 control hierarchy, §7.4 quantitative residual, §7.5 cascade |
+| `risk-xlsx-export` | Spec of the 4-tab Excel inventory (`openpyxl` dependency) |
+| `use-export` | Spec of the IEC 62366-1 triplet — UEF + Summative Evaluation + Annex 1 IECEE — with 2 templates (`platform-rich`, `clinical-narrow`) |
+| `migrate-config` | Migration audit of an already-initialised project after a plugin upgrade |
+| `refresh-items` | Additive refresh of existing items when the frontmatter schema evolved |
+| `mitigation-audit` | Code-vs-mitigation audit convention: for each non-acceptable residual risk, `implementation_status ∈ {absent, partial, implemented}` of the cited controls, read from the code |
+| `prompts-generator` | Spec of the coverage-gap prompt generator: one autonomous prompt file per orphan SRS (impl / unit-tests / E2E Playwright) under `docs/generated/prompts/` |
 
 ### Sub-agents
 
-| Agent | Rôle |
+| Agent | Role |
 |---|---|
-| `code-archeologist` | Cartographie du repo → `docs/generated/_codemap.md` |
-| `requirements-writer` | Génère `docs/items/SRS/*.md` |
-| `architecture-writer` | Génère `docs/items/SDS/*.md` |
-| `test-evidence-collector` | Génère `docs/items/TC/*.md` |
-| `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation safety |
-| `security-analyst` | Threat modeling STRIDE → `docs/items/THR/*.md` + mitigations cyber |
-| `usability-analyst` | Scan UI → `docs/items/USC/*.md` + `URSK/*.md` + SRS-VIEWER-* + TC E2E |
-| `production-risk-analyst` | Scan CI/CD + Docker + deploy → `docs/items/PRSK/*.md` + SRS-SIGNING/SBOM (AAMI TIR57) |
-| `items-refresher` | Remplit sémantiquement les `[TODO]` placeholders insérés par `/doc-refresh-items --apply`. Inférence pour RSK (initiating_causes, foreseeable_sequence, hierarchy, residual) depuis hazard + source. Projection CIA pour THR depuis STRIDE + impact. Ne touche jamais aux champs déjà remplis. |
-| `mitigation-auditor` | Audite code-vs-mitigation pour les risques résiduels non-acceptable. Lit le code pointé par chaque SRS de contrôle, juge `implementation_status` (absent/partial/implemented), annote les SRS (additif), recommande les flips `residual_acceptable: true` (jamais applique directement — l'orchestrateur le fait avec `--apply`). |
-
-### Coverage-gap prompts skill
-
-| Skill | Rôle |
-|---|---|
-| `prompts-generator` | Spec du générateur de prompts coverage-gap : transforme chaque SRS orphelin en fichier prompt autonome (impl / unit-tests / E2E Playwright) sous `docs/generated/prompts/` pour pilotage manuel d'autres sessions Claude Code. |
-| `doc-updater` | Détecte orphelins, items stale, gaps de couverture → `_update_diff.md` |
-| `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
+| `code-archeologist` | maps the repository → `docs/generated/_codemap.md` (read-only) |
+| `requirements-writer` | `docs/items/SRS/*.md` with kinds, parameters, numbered criteria, History |
+| `architecture-writer` | `docs/items/SDS/*.md`, `docs/ots.yaml`, the six `dt-clinical-context.md` sections |
+| `test-evidence-collector` | `docs/items/TC/*.md` whose `test_id` exists; planned TC never counted |
+| `risk-analyst` | `docs/items/RSK/*.md` + the safety mitigation SRS; re-assessments to History |
+| `production-risk-analyst` | scans CI/CD + Docker + deploy → `docs/items/PRSK/*.md` + SRS-SIGNING / SBOM (AAMI TIR57) |
+| `security-analyst` | STRIDE threat modeling → `docs/items/THR/*.md` with the four THR sections, the four cybersecurity views, security SRS |
+| `usability-analyst` | UI scan → `docs/items/USC/*.md` + `URSK/*.md` + `SRS-VIEWER-*` + E2E TC |
+| `items-refresher` | fills the `[TODO]` placeholders inserted by `/doc-refresh-items --apply` (RSK causal chain from hazard + source, THR CIA projection from STRIDE + impact); never touches a filled field |
+| `mitigation-auditor` | code-vs-mitigation audit for non-acceptable residual risks; annotates the control SRS (additive), recommends `residual_acceptable: true` flips (never applies them — the orchestrator does with `--apply`) |
+| `doc-updater` | orphans, stale items, coverage gaps → `_update_diff.md`; writes History, never normative text |
+| `compliance-reviewer` | runs the gate and the class A checklist → `99_compliance_review.md`; DECISION findings first, then offenders |
 
 ### Slash commands
 
-| Commande | Effet |
+| Command | Effect |
 |---|---|
-| `/doc-init [--update] [--with-examples]` | Scaffolde le repo cible |
-| `/doc-62304 [scope]` | Pipeline complet (génération initiale) |
-| `/doc-update [Vx.y]` | Mise à jour incrémentale après évolution du code (orphelins, stale, gaps) |
-| `/doc-item <ID> [titre]` | CRUD d'un item unique |
-| `/doc-build [--strict]` | Lance `tools/build_docs.py` |
-| `/doc-srs-export [--strict] [--md-only]` | Produit le livrable SRS QMS-ready dans `docs/export/` via `tools/build_srs_export.py` |
-| `/doc-risk-export [--strict] [--md-only]` | Produit le Risk Analysis Report ISO 14971-compliant (+ table CSV d'inventaire) dans `docs/export/` via `tools/build_risk_export.py` |
-| `/doc-risk-xlsx [--strict]` | Produit l'inventaire Excel 4-onglets (Design / Production / Usability / Cybersecurity) matching le format Avicenna `annex1-RISK-TABLE.xlsx` via `tools/build_risk_xlsx.py` (nécessite `openpyxl`) |
-| `/doc-sdd-export [--strict] [--md-only]` | Produit le Software Design Description (Avicenna `AV-DP-XXX-SDD`) via `tools/build_sdd_export.py` |
-| `/doc-stp-export [--strict] [--md-only]` | Produit le Software Test Plan (Avicenna `AV-DP-XXX-STP`) via `tools/build_stp_export.py` |
-| `/doc-stdr-export [--strict] [--md-only]` | Produit le Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) — ingère `test-results.json` produit par CI — via `tools/build_stdr_export.py` |
-| `/doc-str-export [--strict] [--md-only]` | Produit le Software Test Report (Avicenna `AV-DP-XXX-STR-auto`) synthèse pass/fail depuis `test-results.json` — via `tools/build_str_export.py` |
-| `/doc-use-export [--strict] [--md-only] [--template platform-rich\|clinical-narrow] [--only uef\|use\|annex1]` | Produit le triplet IEC 62366-1 — Usability Engineering File (UEF), Summative Evaluation (USE), et UEF Annex 1 (IECEE compliance checklist) — via `tools/build_use_export.py`. Deux modes : `platform-rich` (défaut, tabulaire multi-persona/surface — SaaS) et `clinical-narrow` (narratif 6 étapes — AI clinique étroit type CSpine). |
-| `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
-| `/doc-refresh-items [--apply] [--cat CAT] [--stdout] [--auto-fill]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders. Avec `--auto-fill`, enchaîne avec le sub-agent `items-refresher` qui remplit sémantiquement les `[TODO]` depuis hazard / STRIDE / source code. Items restent en `status: Draft` pour re-approbation. |
-| `/doc-prompts [--cat impl\|unit\|e2e\|all] [--srs ID] [--clean]` | Génère des prompts ready-to-paste pour les SRS orphelins (sans SDS implémentant et/ou sans TC vérifiant). 3 types : impl, unit-tests, E2E Playwright (si UI). Un fichier par SRS sous `docs/generated/prompts/`, à coller dans une autre session Claude Code pour combler le gap. |
-| `/doc-audit-mitigations [--all] [--apply] [--cat RSK,URSK,THR,PRSK]` | Audit code-vs-mitigation : pour chaque risque `residual_acceptable: false`, liste les contrôles cités, fait juger leur `implementation_status` par l'agent `mitigation-auditor`, annote les SRS de mitigation. Avec `--apply`, bascule les `residual_acceptable: true` éligibles. Utile pour distinguer "gap de code" et "gap de doc" avant submission RAQA. Cf. `tools/audit_mitigations.py`. |
+| `/doc-init [--update] [--with-examples]` | Scaffold the target repository (`--update` refreshes the tools, never `dt-config.yaml` / `dt-clinical-context.md`) |
+| `/doc-62304 [scope]` | Full pipeline (initial generation, with the coverage pass 2) |
+| `/doc-update [Vx.y]` | Incremental update after the code changed (orphans, stale, gaps); step 8 reports the lint counts |
+| `/doc-item <ID> [title]` | CRUD of one item from the templates |
+| `/doc-build [--strict \| --internal \| --release]` | Working build (`tools/build_docs.py`), internal copy with the open-points register, or gated release export of every deliverable |
+| `/doc-srs-export [--strict \| --internal \| --release] [--md-only]` | QMS-ready SRS in `docs/export/` via `tools/build_srs_export.py` |
+| `/doc-sdd-export [--strict \| --internal \| --release] [--md-only]` | Software Design Description via `tools/build_sdd_export.py` |
+| `/doc-stp-export [--strict \| --internal \| --release] [--md-only]` | Software Test Plan via `tools/build_stp_export.py` |
+| `/doc-stdr-export [--strict \| --internal \| --release] [--md-only]` | Software Test Description and Reports — ingests the bound `test-results.json` — via `tools/build_stdr_export.py` |
+| `/doc-str-export [--strict \| --internal \| --release] [--md-only]` | Software Test Report — pass/fail summary, run metadata, anomalies, conclusion — via `tools/build_str_export.py` |
+| `/doc-risk-export [--strict \| --internal \| --release] [--md-only]` | ISO 14971 Risk Analysis Report (+ CSV inventory) via `tools/build_risk_export.py` |
+| `/doc-risk-xlsx [--strict \| --release]` | 4-tab Excel inventory (Design / Production / Usability / Cybersecurity) via `tools/build_risk_xlsx.py` (needs `openpyxl`) |
+| `/doc-use-export [--strict \| --internal \| --release] [--md-only] [--template platform-rich\|clinical-narrow] [--only uef\|use\|annex1]` | IEC 62366-1 triplet — UEF, USE, UEF Annex 1 — via `tools/build_use_export.py` |
+| `/doc-migrate [--apply] [--stdout]` | Migration audit after a plugin upgrade: missing `dt-config.yaml` keys, missing `dt-clinical-context.md` anchors, items with an incomplete schema, outdated scripts. Additive-only (`--apply`) or dry-run (default). |
+| `/doc-refresh-items [--apply] [--cat CAT] [--stdout] [--auto-fill]` | Additive refresh of existing items when the frontmatter schema evolved (RSK ISO 14971 §C.2, THR CIA, `kind`, `parameters`, `references`, `## History`, …). Missing fields inserted as `[TODO]` placeholders in internal sections; `--auto-fill` chains the `items-refresher`. Items return to `status: Draft`. |
+| `/doc-prompts [--cat impl\|unit\|e2e\|all] [--srs ID] [--clean]` | Ready-to-paste prompts for orphan SRS (no implementing SDS and/or no verifying TC), one file per SRS under `docs/generated/prompts/` |
+| `/doc-audit-mitigations [--all] [--apply] [--cat RSK,URSK,THR,PRSK]` | Code-vs-mitigation audit for each `residual_acceptable: false` risk; annotates the mitigation SRS; `--apply` flips the eligible residuals. Cf. `tools/audit_mitigations.py`. |
 
-## Layout du plugin
+## Plugin layout
 
 ```
 iec62304-writer/
 ├── .claude-plugin/
 │   └── plugin.json
-├── skills/                    # 20 skills (référentiels + exports + audit)
+├── skills/                    # 24 skills (references + contract + exports + audit)
 ├── agents/                    # 12 sub-agents
 ├── commands/                  # 17 slash commands
-├── scaffold/                  # assets copiés par /doc-init
+├── scaffold/                  # assets copied by /doc-init
 │   ├── tools/
-│   │   ├── _lib.py                  # helpers partagés (YAML parser, Item, ...)
-│   │   ├── build_docs.py            # agrégats internes /doc-build
+│   │   ├── README.md                # what is scaffolded, the reference exporters, the contract they implement
+│   │   ├── _lib.py                  # shared helpers (YAML parser, Item, ...)
+│   │   ├── build_docs.py            # working build /doc-build
 │   │   ├── build_srs_export.py      # /doc-srs-export
 │   │   ├── build_sdd_export.py      # /doc-sdd-export
 │   │   ├── build_stp_export.py      # /doc-stp-export
-│   │   ├── build_stdr_export.py     # /doc-stdr-export (ingère test-results.json)
-│   │   ├── build_str_export.py      # /doc-str-export (idem)
+│   │   ├── build_stdr_export.py     # /doc-stdr-export (ingests test-results.json)
+│   │   ├── build_str_export.py      # /doc-str-export (same)
 │   │   ├── build_risk_export.py     # /doc-risk-export (.md + .csv)
-│   │   ├── build_risk_xlsx.py       # /doc-risk-xlsx (Excel 4-onglets)
+│   │   ├── build_risk_xlsx.py       # /doc-risk-xlsx (4-tab Excel)
 │   │   ├── build_use_export.py      # /doc-use-export (UEF + USE + Annex 1)
-│   │   └── audit_mitigations.py     # /doc-audit-mitigations (cadrage code-vs-control)
-│   ├── dt-config.yaml         # config QMS (signataires, refs, id_format, external_resources, usability) — édité à la main
-│   ├── test-results.example.json    # spec du format CI consommé par stdr/str-export
-│   ├── static/                # boilerplates IEC 62366-1 — copiés tels quels par /doc-init
-│   │   ├── sample-size-justification.md       # §5.1 UEF (Virzi/Nielsen/Lewis/Faulkner/FDA/IEC 62366-2)
-│   │   ├── clinical-evidence-questionnaire.md # Annex A USE
-│   │   └── iec62366-annex1-checklist.csv      # checklist clause-par-clause IECEE
+│   │   ├── build_migrate.py         # /doc-migrate
+│   │   ├── refresh_items.py         # /doc-refresh-items
+│   │   ├── build_prompts.py         # /doc-prompts
+│   │   └── audit_mitigations.py     # /doc-audit-mitigations
+│   ├── dt-config.yaml         # QMS config (documents, signatories, refs, id_format, versioning, scales, lint, anomalies, external_resources, usability) — hand-edited
+│   ├── test-results.example.json    # CI format consumed by stdr/str-export
+│   ├── static/                # IEC 62366-1 boilerplates — copied as-is by /doc-init
+│   │   ├── sample-size-justification.md
+│   │   ├── clinical-evidence-questionnaire.md
+│   │   └── iec62366-annex1-checklist.csv
 │   └── docs/
-│       ├── templates/         # 9 squelettes (MAP/SRS/SDS/TC/RSK/PRSK/THR/USC/URSK)
-│       ├── dt-clinical-context.md   # narratives QMS (14 anchors, dont 4 IEC 62366-1) — édité à la main
-│       └── test_plan_intro.md       # narrative STD (legacy, intégré dans 30_STD)
-└── examples/                  # items démo (copiés via --with-examples)
+│       ├── templates/         # 9 skeletons (MAP/SRS/SDS/TC/RSK/PRSK/THR/USC/URSK)
+│       ├── ots.yaml                 # OTS / SOUP registry skeleton
+│       ├── dt-clinical-context.md   # QMS narratives (SRS / risk / usability anchors + the six SDD sections) — hand-edited
+│       └── test_plan_intro.md       # STD / STP narrative
+└── examples/                  # demo items (copied with --with-examples)
     └── MAP/  SRS/  SDS/  TC/  RSK/  PRSK/  THR/
 ```
 
-## Layout produit dans le repo cible (après `/doc-init`)
+## Target repository layout (after `/doc-init`)
 
 ```
-mon-projet/
-├── tools/                          # tous copiés par /doc-init
-│   ├── _lib.py                     # helpers partagés
-│   ├── build_docs.py               # agrégats internes
-│   ├── build_srs_export.py
-│   ├── build_sdd_export.py
-│   ├── build_stp_export.py
-│   ├── build_stdr_export.py
-│   ├── build_str_export.py
-│   ├── build_risk_export.py
-│   ├── build_risk_xlsx.py
-│   ├── build_use_export.py
-│   └── audit_mitigations.py        # /doc-audit-mitigations
-├── dt-config.yaml                  # config QMS — édité à la main
-├── test-results.example.json       # exemple format CI — à remplacer par test-results.json en CI
+my-project/
+├── tools/                          # all copied by /doc-init
+│   ├── README.md                   # the exporters and the contract
+│   ├── _lib.py
+│   ├── build_docs.py               # working build
+│   ├── build_srs_export.py … build_use_export.py
+│   ├── build_migrate.py, refresh_items.py, build_prompts.py
+│   └── audit_mitigations.py
+├── dt-config.yaml                  # document control, id format, versioning mode, scales, lint terms — hand-edited
+├── test-results.example.json       # CI format example — replaced by test-results.json in CI
 └── docs/
-    ├── templates/                  # 9 squelettes
-    ├── static/                     # boilerplates IEC 62366-1 (sample-size, questionnaire, IECEE checklist) — édités à la main
-    ├── items/                      # source de vérité
-    │   ├── MAP/                    # ★ inputs upstream (master / stakeholder reqs) — saisis à la main
+    ├── templates/                  # 9 skeletons
+    ├── static/                     # IEC 62366-1 boilerplates — hand-edited
+    ├── items/                      # the source of truth
+    │   ├── MAP/                    # ★ upstream inputs (master / stakeholder reqs) — hand-entered
     │   ├── SRS/  SDS/  TC/
-    │   ├── RSK/  PRSK/  THR/       # ★ risk safety / production / cyber
+    │   ├── RSK/  PRSK/  THR/       # ★ safety / production / cyber risks
     │   └── USC/  URSK/             # ★ usability
-    ├── dt-clinical-context.md      # narratives QMS — édité à la main
-    ├── generated/                  # produit par /doc-build (NE PAS éditer)
-    └── export/                     # produit par /doc-*-export — livrables QMS-ready
+    ├── ots.yaml                    # the only place a third-party component is identified
+    ├── dt-clinical-context.md      # QMS narratives — hand-edited
+    ├── test_plan_intro.md
+    ├── generated/                  # produced by /doc-build (DO NOT edit) — never a deliverable
+    └── export/                     # produced by /doc-*-export — QMS-ready deliverables
 ```
 
-## Multi-repo (front + back, monorepo de repos)
+## Multi-repo (front + back, a project of repositories)
 
-Lance `/doc-init` depuis le **dossier projet** qui contient les
-sous-repos git. Layout typique :
+Run `/doc-init` from the **project folder** that contains the git
+sub-repositories. Typical layout:
 
 ```
-mon-projet/
-├── front/                    # repo git #1
+my-project/
+├── front/                    # git repo #1
 │   ├── .git/
 │   ├── package.json
 │   └── src/...
-├── back/                     # repo git #2
+├── back/                     # git repo #2
 │   ├── .git/
 │   ├── pyproject.toml
 │   └── api/...
-├── tools/build_docs.py       # créé par /doc-init
-└── docs/                     # créé par /doc-init
-    ├── items/                #   items partagés entre les deux composants
+├── tools/build_docs.py       # created by /doc-init
+└── docs/                     # created by /doc-init
+    ├── items/                #   items shared by both components
     └── generated/
 ```
 
-`/doc-init` détecte automatiquement les sous-dossiers contenant un
-`.git/` et passe en mode multi-repo. Le `code-archeologist` produit
-alors une code-map structurée par composant, et tous les agents
-préfixent les chemins `source:` par le nom du composant
-(`front/src/auth/oauth.ts`, `back/api/routes.py`).
+`/doc-init` detects the sub-folders that contain a `.git/` and switches
+to multi-repo mode. The `code-archeologist` then produces a code map
+structured per component, and every agent prefixes `source:` paths with
+the component name (`front/src/auth/oauth.ts`, `back/api/routes.py`).
 
-`build_docs.py` scanne `package.json` / `pyproject.toml` /
-`requirements*.txt` à la racine **et** dans chaque sous-repo détecté
-pour produire la liste des frameworks de test dans le STD.
+`build_docs.py` scans `package.json` / `pyproject.toml` /
+`requirements*.txt` at the root **and** in each detected sub-repository
+to list the test frameworks in the STD.
 
-Le dossier projet n'a **pas besoin** d'être lui-même un repo git ; en
-revanche, versionner `docs/` quelque part (3ᵉ repo umbrella, ou inclus
-dans front/back) est conseillé pour la traçabilité 62304.
+The project folder itself need **not** be a git repository; versioning
+`docs/` somewhere (a third umbrella repo, or inside front/back) is what
+gives the 62304 audit trail.
 
-## Reproduction des features Matrix Requirements
+## Matrix Requirements features reproduced
 
-| Matrix Requirements | Équivalent local |
+| Matrix Requirements | Local equivalent |
 |---|---|
-| Items à ID stable, catégories | `docs/items/<CAT>/<ID>.md` |
-| Liens UP/DOWN, traçabilité N:N | `links:` en frontmatter YAML |
+| Stable-ID items, categories | `docs/items/<CAT>/<ID>.md` |
+| UP/DOWN links, N:N traceability | `links:` in the YAML frontmatter |
 | Coverage views | `40_traceability.md` + `coverage.json` |
-| Item revisions / audit log | git history + commits signés |
-| Workflow review/approve | `status: Draft → Approved`, PR + reviewers |
-| Export DOCX intégré | `/doc-srs-export`, `/doc-sdd-export`, `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`, `/doc-risk-export` (pandoc invoqué automatiquement si `rendering.reference_docx` est configuré) |
-| Export Excel (inventory) | `/doc-risk-xlsx` (4-onglets Design/Production/Usability/Cybersecurity) |
-| Item DOORS-like editing | `/doc-item <ID>` |
+| Item revisions / audit log | `## History` per item + git history + signed commits |
+| Review/approve workflow | `status: Draft → Approved`, PR + reviewers; the DC gate before a release |
+| Integrated DOCX export | `/doc-srs-export`, `/doc-sdd-export`, `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`, `/doc-risk-export` (pandoc invoked when `rendering.reference_docx` is set) |
+| Excel export (inventory) | `/doc-risk-xlsx` (4 tabs Design/Production/Usability/Cybersecurity) |
+| DOORS-like item editing | `/doc-item <ID>` |
 
-## Recette de mise à jour d'un projet existant
+## Recipe: updating an already-initialised project
 
-Quand le plugin a évolué (nouveau schéma RSK ISO 14971 §C.2, CIA triad
-THR, PRSK ajouté, nouveaux livrables SDD/STP/STDR/STR, etc.), un projet
-déjà initialisé doit être synchronisé. Workflow en 9 étapes — chaque
-étape est **idempotente** et **additive-only** côté contenu utilisateur.
+When the plugin evolved (new RSK ISO 14971 §C.2 schema, THR CIA triad,
+PRSK, new SDD/STP/STDR/STR deliverables, the submission contract: `kind`,
+`parameters`, `references`, `## History`, `docs/ots.yaml`, `documents:`,
+harm-based scales, …), an already-initialised project must be
+synchronised. A 9-step workflow — each step is **idempotent** and
+**additive-only** on user content.
 
 ```bash
-# ─── 1. Update du plugin ───
+# ─── 1. Update the plugin ───
 /plugin update iec62304-writer
 
-# ─── 2. Refresh des scripts dans le repo cible ───
+# ─── 2. Refresh the scripts in the target repository ───
 /iec62304-writer:doc-init --update
-# Rafraîchit tous les tools/build_*.py + _lib.py. dt-config.yaml et
-# dt-clinical-context.md jamais écrasés.
+# Refreshes every tools/*.py + _lib.py + tools/README.md. dt-config.yaml and
+# dt-clinical-context.md are never overwritten.
 
-# ─── 3. Audit de l'état actuel ───
+# ─── 3. Audit the current state ───
 /iec62304-writer:doc-migrate
-# Rapport additif sous docs/generated/migration-report.md :
-#   §A clés manquantes dans dt-config.yaml
-#   §B anchors manquants dans dt-clinical-context.md
-#   §C items au schéma incomplet (RSK, THR, etc.)
-#   §D scripts outdated
+# Additive report under docs/generated/migration-report.md:
+#   §A keys missing from dt-config.yaml (documents, versioning, classification
+#      scales, lint, references, anomalies, exporters)
+#   §B anchors missing from dt-clinical-context.md (the six SDD sections)
+#   §C items with an incomplete schema (RSK, THR, kind, parameters, History, …)
+#   §D outdated scripts
 
 /iec62304-writer:doc-migrate --apply
-# Patche §A et §B en additif (jamais d'écrasement). §C reste read-only.
+# Patches §A and §B additively (never overwrites). §C stays read-only.
 
-# ─── 4. Migration des items existants vers le nouveau schéma ───
+# ─── 4. Migrate the existing items to the new schema ───
 /iec62304-writer:doc-refresh-items
-# Dry-run : montre ce qui serait ajouté à chaque item
+# Dry run: shows what would be added to each item
 
 /iec62304-writer:doc-refresh-items --auto-fill
-# Insère les champs manquants comme [TODO], puis invoque items-refresher
-# qui les remplit sémantiquement :
-#   - RSK : initiating_causes / foreseeable_sequence / control_hierarchy /
-#           residual_probability / residual_severity / residual_risk_level
-#   - THR : projection CIA depuis STRIDE + impact
-# Items modifiés → version bumpée (patch), status → Draft.
+# Inserts the missing fields as [TODO] (internal sections only), renames a
+# legacy `## Changelog` to `## History`, then invokes items-refresher, which
+# fills them semantically:
+#   - RSK: initiating_causes / foreseeable_sequence / control_hierarchy /
+#          residual_probability / residual_severity / residual_risk_level
+#   - THR: CIA projection from STRIDE + impact
+#   - SRS: kind, parameters from the literals the text quotes
+# Modified items → version bumped (patch), status → Draft.
 
 git diff docs/items/RSK/ docs/items/THR/
-# Reviewer item par item. Pour les [TODO] résiduels (hazard trop vague,
-# manque de contexte source) : édition manuelle ou nouvelle session
-# @risk-analyst / @security-analyst.
+# Review item by item. For the residual [TODO] (hazard too vague, missing
+# source context): manual edit or a new @risk-analyst / @security-analyst
+# session.
 
-# ─── 5. Coverage pass-2 (gap si des SRS de mitigation ont été créés) ───
-# Si des SRS-MIT-* / SRS-CYB-* / SRS-PROD-* / SRS-USE-* ont été ajoutés
-# par les analystes mais qu'aucun SDS/TC ne les couvre encore, relancer
-# les writers en passe 2. Option lourde (pipeline complet) :
+# ─── 5. Coverage pass 2 (gap when mitigation SRS were created) ───
+# If SRS-MIT-* / SRS-CYB-* / SRS-PROD-* / SRS-USE-* were added by the
+# analysts and no SDS/TC covers them yet, re-run the writers in pass 2.
+# Heavy option (full pipeline):
 /iec62304-writer:doc-62304
-# Option ciblée (uniquement passe 2) :
-@test-evidence-collector "passe 2 : scanne les tests qui couvrent les SRS de mitigation sans links.verifies entrante, ajoute les liens trouvés"
-@architecture-writer    "passe 2 : idem pour les SDS"
+# Targeted option (pass 2 only):
+@test-evidence-collector "pass 2: scan the tests that cover the mitigation SRS with no incoming links.verifies, add the links found"
+@architecture-writer    "pass 2: same for the SDS"
 
-# ─── 6. Rebuild + ré-audit ───
+# ─── 6. Rebuild + re-audit ───
 /iec62304-writer:doc-build
 /iec62304-writer:doc-migrate
-# §C devrait être considérablement réduit
+# §C should be considerably reduced
 
-# ─── 6bis. Audit code-vs-mitigation (optionnel mais recommandé avant 7) ───
+# ─── 6bis. Code-vs-mitigation audit (optional, recommended before 7) ───
 /iec62304-writer:doc-audit-mitigations
-# Pour chaque risque avec residual_acceptable: false, audit code-vs-control :
-# le `mitigation-auditor` lit le code pointé par chaque SRS de mitigation et
-# annote implementation_status (absent | partial | implemented). Distingue
-# gap de code (à traiter en étape 7) et gap de doc (SRS mal pointé ou pas
-# encore lié à du code existant). Avec --apply, bascule les risques dont
-# tous les contrôles sont implementé.
+# For each risk with residual_acceptable: false, a code-vs-control audit:
+# the mitigation-auditor reads the code each mitigation SRS points to and
+# annotates implementation_status (absent | partial | implemented). Separates
+# a code gap (step 7) from a doc gap (SRS pointing wrong, or not yet linked
+# to existing code). With --apply, flips the risks whose controls are all
+# implemented.
 /iec62304-writer:doc-audit-mitigations --apply
 
-# ─── 7. Combler les gaps de code et de tests réels ───
+# ─── 7. Close the real code and test gaps ───
 /iec62304-writer:doc-prompts
 cat docs/generated/prompts/_index.md
-# Pour chaque SRS orphelin, le plugin a généré 1 à 3 prompts :
-#   <SRS-ID>-impl.md       — pour le code manquant
-#   <SRS-ID>-unit-tests.md — pour les tests unitaires
-#   <SRS-ID>-e2e.md        — pour Playwright (si surface UI détectée)
-# Workflow :
-#   1. Ouvrir un fichier prompt
-#   2. Coller son contenu dans une nouvelle session Claude Code (repo cible)
-#   3. Laisser tourner, reviewer le diff, commit
-#   4. Itérer sur les autres prompts
-# Tu peux paralléliser sur plusieurs sessions si le repo est multi-repo.
+# For each orphan SRS the plugin generated 1 to 3 prompts:
+#   <SRS-ID>-impl.md       — for the missing code
+#   <SRS-ID>-unit-tests.md — for the unit tests
+#   <SRS-ID>-e2e.md        — for Playwright (if a UI surface was detected)
+# Workflow:
+#   1. Open a prompt file
+#   2. Paste its content into a new Claude Code session (target repo)
+#   3. Let it run, review the diff, commit
+#   4. Iterate over the other prompts
+# Parallelise over several sessions if the repo is multi-repo.
 
-# ─── 8. Édition manuelle QMS (jamais auto-générable) ───
+# ─── 8. Manual QMS editing (never auto-generated) ───
 $EDITOR dt-config.yaml
 #   - document.identifier, document.version_label, document.date
+#   - documents.{srs,sdd,rar,stp,stdr,str}
 #   - approvals.{written_by,verified_by,approved_by}
-#   - revision_history (une ligne par release)
-#   - project_references (R1..Rn)
-#   - id_format (Avicenna-style 5 segments si applicable)
-#   - external_resources (pointeurs Obsidian/QMS optionnels)
+#   - revision_history (one row per release — DC-2/3)
+#   - project_references (R1..Rn — must agree with `documents`)
+#   - references (literature and standards the items cite)
+#   - classification.severity_definitions / probability_definitions (harm-based)
+#   - lint.forbidden_terms (competitor names)
+#   - anomalies.open_actions_record
+#   - id_format (5-segment if applicable)
+#   - external_resources (optional Obsidian/QMS pointers)
 
 $EDITOR docs/dt-clinical-context.md
-#   - intended-use (verbatim QMS, ne pas paraphraser)
+#   - intended-use (verbatim QMS, do not paraphrase)
 #   - warnings-and-precautions, end-users, characteristics-affecting-safety
-#   - autres anchors si applicable
+#   - the six SDD sections (architecture, run states, rationale, four security views)
+#   - other anchors if applicable
 
-# ─── 9. Génération des livrables RAQA ───
-/iec62304-writer:doc-srs-export       # SRS .md + .docx
-/iec62304-writer:doc-sdd-export       # SDD .md + .docx
-/iec62304-writer:doc-stp-export       # STP .md + .docx
-/iec62304-writer:doc-risk-export      # Risk Report .md + .docx + .csv
-/iec62304-writer:doc-risk-xlsx        # Risk Table .xlsx (4 onglets)
-/iec62304-writer:doc-use-export       # UEF + USE + UEF-Annex1 IEC 62366-1
-# Si la CI émet test-results.json :
-/iec62304-writer:doc-stdr-export      # STDR avec résultats
-/iec62304-writer:doc-str-export       # STR synthèse pass/fail
+$EDITOR docs/ots.yaml
+#   - one row per installed third-party component at exact version, base image included
+
+# ─── 9. Generate the RAQA deliverables ───
+/iec62304-writer:doc-build --release          # runs the gate first; refuses when the store is not clean
+/iec62304-writer:doc-srs-export --release     # SRS .md + .docx
+/iec62304-writer:doc-sdd-export --release     # SDD .md + .docx
+/iec62304-writer:doc-stp-export --release     # STP .md + .docx
+/iec62304-writer:doc-risk-export --release    # Risk Report .md + .docx + .csv
+/iec62304-writer:doc-risk-xlsx --release      # Risk Table .xlsx (4 tabs)
+/iec62304-writer:doc-use-export --release     # UEF + USE + UEF-Annex1 IEC 62366-1
+# After the CI run bound test-results.json (tools/bind_test_results.py):
+/iec62304-writer:doc-stdr-export --release    # STDR with results and run metadata
+/iec62304-writer:doc-str-export --release     # STR pass/fail summary, anomalies, conclusion
 
 ls docs/export/
-# 10 livrables matching le format Avicenna prêts pour revue RAQA.
-# Les sections [TODO] non remplies apparaissent en jaune dans le .docx
-# (HTML <mark> rendu par pandoc en Highlight Word).
+# 10 deliverables ready for RAQA review. A release export carries no [TODO];
+# for a review copy with the open-points register and the yellow markers,
+# use --internal instead.
 ```
 
-### Effort attendu
+### Expected effort
 
-| Étape | Durée typique | Type |
+| Step | Typical duration | Type |
 |---|---|---|
 | 1-3 | ~5 min | Auto |
-| 4 | ~10 min auto + 30-60 min review humaine | Auto + review |
-| 5 | ~10 min ciblé / ~30 min pipeline complet | Auto |
+| 4 | ~10 min auto + 30-60 min human review | Auto + review |
+| 5 | ~10 min targeted / ~30 min full pipeline | Auto |
 | 6 | ~5 min | Auto |
-| 6bis | ~3-5 min auto + 10-20 min review humaine (verdicts agent) | Auto + review |
-| 7 | **Le gros morceau** — ~5-10 min/SRS × N gaps, parallélisable sur plusieurs sessions | Humain + Claude Code |
-| 8 | ~30 min | Humain (QMS) |
+| 6bis | ~3-5 min auto + 10-20 min human review (agent verdicts) | Auto + review |
+| 7 | **The big one** — ~5-10 min/SRS × N gaps, parallelisable over sessions | Human + Claude Code |
+| 8 | ~30 min | Human (QMS) |
 | 9 | ~5 min | Auto |
 
-L'étape 7 est l'effort principal : c'est là où on écrit les vrais
-modules et tests manquants. Le plugin assiste (chaque prompt arrive
-avec contexte complet : produit, intended use, SRS verbatim,
-conventions), mais l'humain reste dans la boucle pour reviewer chaque
-diff avant commit — c'est exigé par ISO 14971 §4.3 (compétence du
-personnel).
+Step 7 is the main effort: that is where the real missing modules and
+tests get written. The plugin assists (each prompt comes with its full
+context: product, intended use, SRS verbatim, conventions), but a human
+stays in the loop to review each diff before commit — ISO 14971 §4.3
+(competence of personnel) requires it.
 
-### Recettes plus courtes
+### Shorter recipes
 
-- **Tu veux juste un audit sans rien modifier** : `/doc-migrate` (+ ré-éditer manuellement si tu vois quelque chose dans le rapport).
-- **Tu as juste upgraded le plugin et veux les nouveaux scripts** : `/doc-init --update`.
-- **Tu as ajouté des SRS via les analystes et tu veux que les TC suivent** : étape 5 ciblée.
-- **Tu veux juste la SRS au format Word pour le notified body** : étape 9 limitée à `/doc-srs-export`.
+- **You only want an audit, nothing modified**: `/doc-migrate` (+ manual edits if the report shows something).
+- **You just upgraded the plugin and want the new scripts**: `/doc-init --update`.
+- **You added SRS through the analysts and want the TC to follow**: targeted step 5.
+- **You only want the SRS in Word for the notified body**: step 9 limited to `/doc-srs-export --release`.
 
-## Workflow complet (code → livrable RAQA)
+## Full workflow (code → RAQA deliverable)
 
 ```
- 1. /doc-init                       # scaffolde tout (dt-config.yaml, templates, tools)
- 2. Éditer dt-config.yaml           # signataires, identifier, revision history, id_format,
-                                    # external_resources (pointeurs Obsidian/QMS), test_results_path
- 3. Saisir docs/items/MAP/*.md      # master reqs upstream (recopiés du PMAP) — manuel
- 4. Éditer docs/dt-clinical-context.md  # intended use, warnings, glossaire, end-users,
-                                    # characteristics-affecting-safety, etc. — manuel
- 5. /doc-62304                      # génère SRS/SDS/TC/RSK/PRSK/THR/USC/URSK depuis le code
- 6. /doc-update (occasionnel)       # après évolution du code
+ 1. /doc-init                       # scaffolds everything (dt-config.yaml, templates, tools, ots.yaml)
+ 2. Edit dt-config.yaml             # signatories, identifiers, revision history, id_format, scales,
+                                    # references, lint terms, external_resources, test_results_path
+ 3. Enter docs/items/MAP/*.md       # upstream master reqs (copied from the PMAP) — manual
+ 4. Edit docs/dt-clinical-context.md  # intended use, warnings, glossary, end-users,
+                                    # characteristics-affecting-safety, the six SDD sections — manual
+ 5. /doc-62304                      # SRS/SDS/TC/RSK/PRSK/THR/USC/URSK from the code, pass 2, build, review
+ 6. /doc-update (occasional)        # after the code changed
 
- 7. /doc-srs-export                 # SRS    — docs/export/<id>-<vXX>-SRS.md  (+ .docx)
- 8. /doc-sdd-export                 # SDD    — docs/export/<id>-<vXX>-SDD.md  (+ .docx)
- 9. /doc-stp-export                 # STP    — docs/export/<id>-<vXX>-STP.md  (+ .docx)
-10. /doc-risk-export                # Risk Report — (.md + .docx + .csv inventory)
-11. /doc-risk-xlsx                  # Risk Table  — Excel 4-onglets Avicenna-compatible
-                                    # (nécessite `pip install openpyxl`)
+ 7. /doc-srs-export --release       # SRS    — docs/export/<id>-<vXX>-SRS.md  (+ .docx)
+ 8. /doc-sdd-export --release       # SDD    — docs/export/<id>-<vXX>-SDD.md  (+ .docx)
+ 9. /doc-stp-export --release       # STP    — docs/export/<id>-<vXX>-STP.md  (+ .docx)
+10. /doc-risk-export --release      # Risk Report — (.md + .docx + .csv inventory)
+11. /doc-risk-xlsx --release        # Risk Table  — 4-tab Excel (needs `pip install openpyxl`)
 
-   # Après chaque run CI qui produit `test-results.json` :
-12. /doc-stdr-export                # STDR   — Test description + résultats par fonctionnalité
-13. /doc-str-export                 # STR    — Synthèse pass/fail pour l'auto report
+   # After each CI run that produced and bound `test-results.json`:
+12. /doc-stdr-export --release      # STDR   — test description + results per functional area
+13. /doc-str-export --release       # STR    — pass/fail summary, run metadata, anomalies, conclusion
 
-14. Revue RAQA, signature           # workflow Word / git commit signé
-    + compléter les sections jaunes <mark>[TODO ...]</mark> dans les .docx
-    + compléter manuellement §2.9 Adequacy of Device Safety et §4.3 Benefit/Risk Analysis
-    + signer le RISK-PLAN (méthodologie QMS) hors du plugin
+14. RAQA review, signature          # Word workflow / signed git commit
+    + complete §2.9 Adequacy of Device Safety and §4.3 Benefit/Risk Analysis by hand
+    + sign the RISK-PLAN (QMS methodology) outside the plugin
 ```
 
-**Étapes 2 et 4 ne sont JAMAIS automatisables** — elles capturent le
-QMS-side context (intended use, signataires, references du dossier
-technique) qui doit venir du système qualité, pas du code. Le plugin
-les attend mais ne tente pas de les inférer.
+**Steps 2 and 4 are NEVER automatable** — they capture the QMS-side
+context (intended use, signatories, references of the technical file)
+that must come from the quality system, not from the code. The plugin
+expects them but does not try to infer them.
 
-## Stratégie hybride `external_resources` + yellow TODO
+## Hybrid strategy: `external_resources` + yellow TODO (working drafts only)
 
-Pour chaque section narrative (architecture générale, intended use,
-class diagram, COTS control, etc.), les commandes `/doc-*-export`
-appliquent une **résolution en 3 étapes** :
+For each narrative section (general architecture, intended use, class
+diagram, COTS control, etc.), the `/doc-*-export` commands apply a
+**3-step resolution**:
 
-1. **`dt-config.yaml: external_resources.<anchor>`** pointe vers un
-   fichier → inliné verbatim (utile pour pointer une note Obsidian
-   QMS, un Mermaid externe, un SBOM exporté…).
-2. **`docs/dt-clinical-context.md`** a une section `## <anchor>` →
-   inlinée.
-3. Aucun des deux → **TODO surligné jaune** via `<mark>...</mark>`,
-   rendu par pandoc en surbrillance Word avec un hint pour l'auteur QMS.
+1. **`dt-config.yaml: external_resources.<anchor>`** points to a file →
+   inlined verbatim (useful for an Obsidian QMS note, an external
+   Mermaid, an exported SBOM…).
+2. **`docs/dt-clinical-context.md`** has a `## <anchor>` section →
+   inlined.
+3. Neither → in a working or `--internal` export, a **yellow-highlighted
+   TODO** via `<mark>...</mark>`, rendered by pandoc as Word highlight
+   with a hint for the QMS author; in a `--release` export, the gate
+   **refuses** the deliverable (TL-1, SL-6).
 
-Exemple `dt-config.yaml` :
+Example `dt-config.yaml`:
 ```yaml
 external_resources:
   general-system-architecture: docs/qms/system-architecture.md
   class-diagram: docs/qms/diagrams/class-diagram.md
 ```
 
-Tous les `<mark>[TODO ...]</mark>` restants apparaissent en **fond
-jaune dans le `.docx`** sans aucune config pandoc supplémentaire —
-l'auteur RAQA voit instantanément ce qui reste à remplir.
+All remaining `<mark>[TODO ...]</mark>` show on a **yellow background in
+the `.docx`** of a working draft with no extra pandoc config — the RAQA
+author sees at once what is left to fill. A release export never
+contains one.
 
-## Format d'ID configurable
+## Configurable ID format
 
-Le format d'ID est lu depuis `dt-config.yaml: id_format`. Par défaut,
-chaque writer mint des IDs en 3 segments :
+The ID format is read from `dt-config.yaml: id_format`. By default each
+writer mints 3-segment IDs:
 
 ```
 SRS-AUTH-001    SDS-API-014    TC-PAY-003
 ```
 
-Pour un format Avicenna-style 5-segments :
+For a 5-segment format:
 
 ```yaml
 # dt-config.yaml
 product:
   suite: CINA
-  application: CSP
+  application: CTP
 id_format:
   default: "{CAT}-{SUITE}-{APP}-{DOMAIN}-{NNN:03d}"
 ```
 
-Produit : `SRS-CINA-CSP-ACQ-020`, `SDS-CINA-CSP-NET-010`, etc.
+Produces `SRS-CINA-CTP-ACQ-020`, `SDS-CINA-CTP-NET-010`, etc.
 
-**Variables disponibles** : `{CAT}`, `{SUITE}`, `{APP}`, `{DOMAIN}`,
-`{NNN:03d}`. Per-category override possible (ex. `MAP: "..."`). Les
-IDs existants ne sont JAMAIS reformatés — seuls les nouveaux IDs
-suivent le format courant.
+**Available variables**: `{CAT}`, `{SUITE}`, `{APP}`, `{DOMAIN}`,
+`{NNN:03d}`. Per-category override possible (e.g. `MAP: "..."`).
+Existing IDs are NEVER reformatted — only new IDs follow the current
+format.
 
-## Conventions clés
+## Key conventions
 
-- **IDs immuables.** Une exigence retirée passe à `Deprecated`. Jamais
-  renumérotée, jamais supprimée.
-- **Pas d'invention.** Tout item doit être traçable à un fichier source.
-  Sinon `[TODO]` explicite.
-- **Idempotence.** Les agents préservent les IDs existants et bumpent
-  `version` uniquement quand le contenu de fond change.
-- **`docs/generated/` est régénérable.** Toute modification doit passer
-  par `docs/items/`.
-- **Safety vs cyber séparés.** RSK = ISO 14971 / patient ; THR =
-  IEC 81001-5-1 / STRIDE. Lien `triggers` THR→RSK quand l'exploit cyber
-  déclenche un hazard safety.
+- **Immutable IDs.** A retired item is `Deprecated`, never renumbered,
+  never deleted.
+- **No invention.** Every item traces to a source file; what cannot be
+  inferred is a `[TODO]` in an internal section.
+- **Idempotence.** Agents keep IDs, bump `version` only on a substantive
+  change, and add one `## History` line per change.
+- **`docs/generated/` is regenerable.** Every change goes through
+  `docs/items/`.
+- **Safety, production, cyber and use risks are separate** (RSK, PRSK,
+  THR, URSK); `links.triggers` connects a threat or use error to the
+  safety hazard it can trigger, `links.mitigates` connects a control to
+  any of them.
+- **Normative vs internal.** Present tense in normative sections; dates,
+  decisions and markers in `## Notes`, `## Open questions`, `## History`.
 
 ## CI
 
-Tous les scripts `build_*.py` supportent `--strict` (exit ≠ 0 en cas de
-défaut). Workflow CI typique :
+Every `build_*.py` script supports `--strict` (non-zero exit on a
+defect); the exporters also support `--release` (the gate). Typical CI
+workflow:
 
 ```yaml
-- run: python tools/build_docs.py --strict           # agrégats internes
-- run: python tools/build_srs_export.py --strict     # SRS deliverable
-- run: python tools/build_sdd_export.py --strict     # SDD
-- run: python tools/build_stp_export.py --strict     # STP
-- run: python tools/build_risk_export.py --strict    # Risk Report (.md + .csv)
-- run: python tools/build_risk_xlsx.py --strict      # Risk Table (xlsx)
+- run: python tools/build_docs.py --strict                 # working build, store lint
+- run: python tools/build_srs_export.py --release --md-only   # the gate: DC + TL + SL, no file written on failure
+- run: python tools/build_sdd_export.py --release --md-only
+- run: python tools/build_stp_export.py --release --md-only
+- run: python tools/build_risk_export.py --release --md-only  # Risk Report (.md + .csv)
+- run: python tools/build_risk_xlsx.py --strict              # Risk Table (xlsx)
 
-# Après l'exécution de la suite de tests :
+# After the test suite ran:
 - run: pytest --junit-xml=junit.xml ...
-- run: <convert junit.xml → test-results.json schema>  # cf. test-results.example.json
-- run: python tools/build_stdr_export.py --strict    # STDR (description + résultats)
-- run: python tools/build_str_export.py --strict     # STR  (synthèse pass/fail)
+- run: python tools/bind_test_results.py junit.xml           # → test-results.json + run metadata (reference exporters)
+- run: python tools/build_stdr_export.py --release --md-only # STDR (description + results)
+- run: python tools/build_str_export.py --release --md-only  # STR  (pass/fail summary)
 ```
 
-`--strict` échoue sur :
+`--strict` fails on:
 
-- `build_docs.py` : marqueurs `[TODO]` / `[GAP-62304]` / `[GAP-CYBER]` /
-  `[GAP-USE]` ; RSK ou THR ou URSK avec `severity: Critical` /
-  `Catastrophic` (Classe A invalide) ou `residual_acceptable: false`.
-- `build_*_export.py` (SRS/SDD/STP/STDR/STR) : tout `<mark>[TODO ...]</mark>`
-  restant dans le rendu — utile pour gater la submission RAQA.
-- `build_risk_export.py` : tout RSK / PRSK / THR avec
-  `residual_acceptable: false`.
-- `build_risk_xlsx.py` : tout risque avec `residual_acceptable: false`
-  (cellule surlignée rouge).
-- `build_stdr_export.py` / `build_str_export.py` : tout TC en statut
-  `failed` dans `test-results.json`.
+- `build_docs.py`: `[TODO]` / `[GAP-62304]` / `[GAP-CYBER]` / `[GAP-USE]`
+  markers anywhere in the store; RSK, THR or URSK with `severity:
+  Critical` / `Catastrophic` (invalid in class A) or `residual_acceptable:
+  false`.
+- `build_*_export.py` (SRS/SDD/STP/STDR/STR): any `<mark>[TODO ...]</mark>`
+  left in the rendering.
+- `build_risk_export.py`: any RSK / PRSK / THR with `residual_acceptable:
+  false`.
+- `build_risk_xlsx.py`: any risk with `residual_acceptable: false` (cell
+  highlighted red).
+- `build_stdr_export.py` / `build_str_export.py`: any TC in status
+  `failed` in `test-results.json`.
 
-## Limites connues
+`--release` fails on everything above plus the DC / TL / SL rules of the
+release gate, and writes no file when it fails.
 
-- **IEC 62304 Classe A uniquement.** Pour B/C, dériver un skill
-  `iec62304-class-b` et étendre les agents (intégration §5.6, gestion
-  plus stricte des SOUP).
-- **Pas de génération de diagrammes** (UML class diagram, workflow
-  diagram). L'utilisateur peut pointer un fichier externe via
-  `external_resources.class-diagram` (Mermaid, PlantUML, .png) ou
-  laisser le yellow TODO pour intégration manuelle.
-- **Benefit-risk analysis** (ISO 14971 §8) : explicitement
-  non-générable. Les sections §2.9 du Risk Report et §4.3 Conclusion
-  restent en yellow TODO — jugement humain RAQA obligatoire.
-- **Le `risk-analyst` infère les hazards depuis le code** ; les hazards
-  d'usage clinique purs (Intended Use, contre-indications) restent à
-  apporter par le système qualité via `dt-clinical-context.md`.
-- **Le `security-analyst` ne lance pas de scan actif.** Si un rapport
-  `npm audit` / `pip-audit` / Snyk est fourni, il l'ingère ; sinon il
-  recommande l'audit sans inventer de CVE.
-- **`test-results.json` non auto-généré.** Le format est documenté dans
-  `scaffold/test-results.example.json` ; la conversion `junit.xml` →
-  `test-results.json` reste à brancher dans le pipeline CI du produit.
+## Known limits
+
+- **IEC 62304 class A only.** For B/C, derive an `iec62304-class-b` skill
+  and extend the agents (§5.6 integration, stricter SOUP management).
+- **No diagram generation** (UML class diagram, workflow diagram). Point
+  at an external file via `external_resources.class-diagram` (Mermaid,
+  PlantUML, .png) or leave the yellow TODO in the working draft for
+  manual integration.
+- **Benefit-risk analysis** (ISO 14971 §8) is explicitly not generated.
+  §2.9 of the Risk Report and §4.3 Conclusion stay as yellow TODO in the
+  working draft — a human RAQA judgement is mandatory.
+- **The `risk-analyst` infers hazards from the code**; purely clinical
+  use hazards (intended use, contraindications) come from the quality
+  system via `dt-clinical-context.md`.
+- **The `security-analyst` runs no active scan.** If an `npm audit` /
+  `pip-audit` / Snyk report is provided it ingests it; otherwise it
+  recommends the audit without inventing a CVE.
+- **`test-results.json` is not generated by the scaffolded tools.** The
+  format is documented in `scaffold/test-results.example.json`; the
+  reference `bind_test_results.py` (CINA-CTP) converts `junit.xml` and
+  records the run metadata.
+- **The `.docx` rendering and the release gate are in the reference
+  exporters**, synced from the CINA-CTP repository; the scaffolded copies
+  render working drafts.

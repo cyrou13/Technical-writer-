@@ -1,0 +1,95 @@
+# OTS / SOUP registry — the ONLY place a third-party component is identified.
+#
+# Read by the SDD exporter (SOUP table), the security-analyst (supply-chain
+# threats) and the store lint (SL-3): every `interfaces.depends_on` entry of an
+# SDS item that is not an item ID must be a `component` key below, every entry
+# must have its ten fields filled before a `--release` export, and no version or
+# supplier may appear in item prose. A second inventory in prose (a "dependencies"
+# paragraph in an SDS, a table in the clinical context) is a defect: this file
+# is the inventory, the SDD renders it.
+#
+# The architecture-writer creates the entries from the dependency locks
+# (pyproject.toml, requirements*.lock, conda-explicit.lock, package-lock.json,
+# Dockerfile); a human completes `supplier`, `eol_status` and `sbom_ref` when
+# the tool leaves "[TODO]".
+#
+# Rules:
+#   one row per INSTALLED component at its EXACT version — never a range pin,
+#     never a second row for the same name;
+#   when pip and conda (or two package managers) both carry a name, the one
+#     that wins at import time (pip, for a Python package) is the row, and the
+#     row says so in `supersedes`;
+#   `functions_used` comes from the ACTUAL imports of the device code (grep the
+#     package), not from what the component could do — "clustering" is not a
+#     symbol;
+#   `hazard_review` is honest about what the scanner covers: pip-audit covers
+#     pip packages only, not conda-installed native libraries, not the OS
+#     layer — say what controls those;
+#   the base image is ONE entry (its digest is the version; its OS packages are
+#     its `functions_used`);
+#   `safety_relevant` is JUSTIFIED per component in the text after the dash of
+#     `hazard_review` ("none — not safety relevant: not on any device code path;
+#     imported by the test suite only"), never left as a boilerplate.
+#
+# Fields:
+#   component        key used in SDS `interfaces.depends_on`; the package name as imported / installed
+#   version          the exact version actually shipped (string); a digest for an image
+#   supplier         organisation or project that maintains it
+#   role             what the software uses it for, one sentence
+#   safety_relevant  true when a failure of this component can reach a clinical output
+#   functions_used   the entry points the code calls (list, from the imports) — the scope of the hazard review
+#   hazard_review    RSK item reviewing the failure modes, or "none — not safety relevant: <why>"
+#   verification     TC item or suite exercising `functions_used`, or "none — not safety relevant: <why>"
+#   eol_status       supported | maintenance | end-of-life | unknown
+#   sbom_ref         pointer into the SBOM, e.g. sbom/cyclonedx.json#<component>
+#   supersedes       optional — "conda numpy 2.2.6: the pip wheel shadows it at import time"
+#
+# Narrative keys rendered above the table (exported, present tense, no dates):
+#   control_procedure   how components are identified, pinned, audited, re-assessed
+#   hazard_contribution how OTS can contribute to a hazardous situation and what contains it
+#
+# Example:
+#   - component: numpy
+#     version: "1.26.4"
+#     supplier: NumPy developers
+#     role: array arithmetic for all map computations
+#     safety_relevant: true
+#     functions_used:
+#       - numpy.linalg.svd
+#       - numpy.fft.rfft
+#     hazard_review: RSK-CTP-OTS-001
+#     verification: TC-CTP-OTS-001
+#     eol_status: supported
+#     sbom_ref: sbom/cyclonedx.json#numpy
+#     supersedes: "conda numpy 2.2.6 (pulled by the BLAS build): the pip wheel shadows it at import time"
+#   - component: ubuntu
+#     version: "22.04@sha256:[TODO digest]"
+#     supplier: Canonical
+#     role: base image of the release container
+#     safety_relevant: false
+#     functions_used:
+#       - libc6
+#       - libgomp1
+#       - ca-certificates
+#     hazard_review: "none — not safety relevant: no device computation runs in an OS package; the image digest is pinned and the OS layer is not covered by pip-audit, it is re-pulled at each release build"
+#     verification: "none — not safety relevant: the release smoke test runs on this image"
+#     eol_status: supported
+#     sbom_ref: sbom/cyclonedx.json#ubuntu
+#   - component: pytest
+#     version: "8.3.2"
+#     supplier: pytest-dev
+#     role: test runner
+#     safety_relevant: false
+#     functions_used: []
+#     hazard_review: "none — not safety relevant: not on any device code path; imported by the test suite only"
+#     verification: "none — not safety relevant: tool qualification is stated in the STP"
+#     eol_status: supported
+#     sbom_ref: sbom/cyclonedx.json#pytest
+
+control_procedure: |
+  [TODO how components are identified, pinned, audited and re-assessed at each release]
+
+hazard_contribution: |
+  [TODO how an off-the-shelf component can contribute to a hazardous situation and what contains it]
+
+components: []

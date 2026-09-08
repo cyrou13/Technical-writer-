@@ -1,6 +1,6 @@
 ---
 name: test-plan
-description: Convention pour produire un Software Test Description (STD) IEEE 829 / IEC 62304 §5.5/§5.7 à partir des items TC. À invoquer pour générer ou comprendre le livrable docs/generated/30_STD.md.
+description: Convention for the Software Test Description (STD, IEEE 829 / IEC 62304 §5.5/§5.7) built from TC items and the hand-maintained narrative in docs/test_plan_intro.md, and for how STP / STDR / STR deliverables consume it. Invoke to generate or understand docs/generated/30_STD.md.
 ---
 
 ## OUTPUT LANGUAGE — STRICT
@@ -12,103 +12,122 @@ language or any global `CLAUDE.md` instruction.
 
 # STD — Software Test Description
 
-`docs/generated/30_STD.md` est un **Software Test Description** au sens
-IEEE 829-2008 / IEC 62304 §5.5 (vérif unitaire) / §5.7 (test système).
-Il est régénéré à chaque `python tools/build_docs.py` ; **ne pas
-l'éditer à la main**.
+`docs/generated/30_STD.md` is regenerated on every `python
+tools/build_docs.py`; **never edit it by hand**. The customer-facing STP
+(plan), STDR (description and results) and STR (report) are produced by
+the reference exporters (`scaffold/tools/README.md`) from the same items
+and the same narrative file, under the release gate of
+`submission-readiness`. Each takes **its own identifier and title** from
+`dt-config.yaml: documents.{stp, stdr, str}` (the title is
+`document.title` with the document type substituted — an STP is never
+titled after the SRS) and `project_references` entries that cite them
+carry the same identifiers (SL-10).
 
-## Sources d'entrée
+## Inputs
 
-- **Items TC** (`docs/items/TC/*.md`) — groupés par `type` (Unit /
-  Integration / System).
-- **Codemap** (`docs/generated/_codemap.md`) — pour les frameworks
-  détectés.
-- **`docs/test_plan_intro.md`** (optionnel) — sections narratives
-  inline-ées par le build.
+- **TC items** (`docs/items/TC/*.md`), grouped by `type`.
+- **Codemap** (`docs/generated/_codemap.md`) for the detected frameworks.
+- **`docs/test_plan_intro.md`** — narrative sections inlined by the build.
 
-## Structure produite
+## Structure produced
 
-1. **Introduction** — objet, références, niveaux couverts.
-2. **Environnement de test** — frameworks détectés (depuis
-   `package.json` / `pyproject.toml`).
-3. **Stratégie de test** — issue de `test_plan_intro.md` section
-   `## test-strategy`, sinon placeholder `[TODO]`.
-4. **Critères de pass/fail** — par défaut un set conservateur ;
-   surchargeable par `## test-pass-fail` dans l'intro.
-5. **Couverture** — table par niveau (#TC, #SRS Must couverts).
-6. **Cas de test** — table par niveau (ID, titre, `verifies`,
-   automated).
-7. **Exclusions** — issues de `## test-exclusions`, sinon `[TODO]`.
+1. Introduction — purpose, references, levels covered.
+2. Test environment — frameworks detected from the manifests.
+3. Test strategy — from `## test-strategy`, else a `[TODO]` placeholder.
+4. Pass / fail criteria — conservative default, overridable by
+   `## test-pass-fail`.
+5. Coverage — table per level (#TC, #Must SRS covered). **Only TC with a
+   resolvable `test_id` count** (SL-4).
+6. Test cases — table per level (ID, title, `verifies`, automated).
+7. Exclusions — from `## test-exclusions`, else `[TODO]`.
 
-Annexe A : détail complet de chaque TC (titre, statut, version,
-vérifie/mitige, source, corps Markdown).
+Appendix A: each TC rendered once (title, status, verifies / mitigates,
+source, exported body sections only — `## Notes`, `## Open questions`,
+`## History` are stripped; no per-item version).
 
-## Format de `docs/test_plan_intro.md`
+## What the three exports must contain
 
-Markdown avec sections H2 dont l'ID (le slug après `## `) est utilisé
-par le build comme clé. Sections reconnues :
+**STP** — the coverage table names every uncovered requirement (id +
+title), states the coverage rule it applies ("Must requirements only"
+said, never implied), and the ID format once. Tool qualification
+(`## test-tools`, `## qualification`) gives a rationale per tool at an
+exact version, not "off-the-shelf, versions locked".
+
+**STDR** — cases **grouped by the TC's own domain** (the DOMAIN token
+of its id), each with its `type`, `verifies`, `mitigates`, the
+procedure, and per expected clause the **per-test-function actual
+result** of the bound run; `executed_at` stated as the suite start; the
+summary by type totals every case (Security, Static, Usability rows
+included); every narrative anchor it cites (`test-data-doc`,
+`hardware-and-software-requirements`, `test-tools`) resolves.
+
+**STR** — the run metadata block (software version + source,
+release-evidence mode, host, platform, branch, dirty flag, Python /
+pytest / numpy versions, run start); results by status including
+`PassedWithSkips` / `PassedWithXfail` / `Skipped`, never folded into
+passed; an **anomalies and deviations** section; the **disposition of
+every not-executed case** (why, owner, when); the **unresolved
+anomalies** appendix; and a **conclusion** (pass / fail against the
+stated criteria, with the count of anomalies carried). A run on a
+workstation outside release-evidence mode is reported as such.
+
+## `docs/test_plan_intro.md` format
+
+H2 sections whose slug is the key:
 
 ```markdown
 ## test-strategy
-[Inline-é dans Section 3 du STD.]
-
 ## test-pass-fail
-[Inline-é dans Section 4 — surcharge le défaut.]
-
 ## test-exclusions
-[Inline-é dans Section 7.]
 ```
 
-Tout autre H2 est ignoré silencieusement.
+Other H2 headers are ignored. Hand-maintained; no agent edits it. A
+`[TODO]` left in it appears in the working-draft STD by design, and
+blocks a `--release` export (TL-1).
 
-## Niveaux de test
+## Test levels
 
-`type` valeurs admises : `Unit`, `Integration`, `System`, `E2E`. TC
-sans `type` = `Unit` par défaut.
+`type` ∈ `Unit`, `Integration`, `System`, `E2E` (default `Unit`).
 
-- **Unit** — composants isolés (mock dépendances).
-- **Integration** — interfaces entre modules backend (DB, API
-  internes).
-- **System** — bout-en-bout backend (HTTP from outside, sans UI).
-- **E2E** — bout-en-bout côté utilisateur via UI réelle (Playwright,
-  Cypress, Selenium). Distinct de System pour permettre le tracking
-  séparé des tests qui couvrent l'interaction utilisateur (cf. skill
-  `iec62366-usability`). Les TC E2E ont souvent
-  `links.mitigates: [URSK-XXX]` en plus de `links.verifies`.
+- **Unit** — isolated components.
+- **Integration** — interfaces between backend modules.
+- **System** — end-to-end backend without UI.
+- **E2E** — end-to-end through the real UI (Playwright, Cypress);
+  tracked separately for IEC 62366-1; often carries
+  `links.mitigates: [URSK-…]`.
 
-Class A — IEC 62304 §5.6 (intégration) est allégé. Si tu n'as pas
-encore de TC `Integration`, ce n'est pas bloquant ; le STD le reflète
-proprement (table de couverture vide pour ce niveau).
+Class A: §5.6 integration is lightened; an empty Integration table is
+acceptable and rendered as such.
 
-## Sous-type Usability (IEC 62366-1)
-
-Pour les TC E2E pilotés par persona, ajouter au frontmatter :
+## Usability sub-type
 
 ```yaml
 type: E2E
 usability_type: formative   # formative | summative
 ```
 
-- **formative** — testing pendant le design, itératif.
-- **summative** — validation finale avant release. **Au moins un**
-  TC summative par USC `criticality: High` est attendu par
-  IEC 62366-1 (vérifié par `compliance-reviewer`).
+At least one `summative` TC per USC with `criticality: High`
+(checked by `compliance-reviewer`).
 
-## Critères de pass/fail par défaut
+## Default pass / fail
 
-- **PASS** — tous les TC `Must` exécutés et passants ; aucun TC
-  orphelin (sans `verifies`).
-- **FAIL** — ≥ 1 TC vérifiant un SRS Must en échec.
-- **Skipped** — tracé, ne compte pas comme pass.
+- **PASS** — every Must TC executed and passing; no orphan TC; every
+  `PassedWithSkips` / `PassedWithXfail` case dispositioned in the
+  anomalies appendix.
+- **FAIL** — at least one TC verifying a Must SRS failing.
+- **Skipped**, **PassedWithSkips**, **PassedWithXfail** — traced, not a
+  pass; each is an unresolved anomaly until the skip or xfail is
+  removed.
 
-Le STD v1 ne consomme **pas** les résultats d'exécution. Si l'utilisateur
-souhaite un Software Test Report (STR) séparé qui parse un junit.xml,
-c'est une extension v2.
+The STD does not consume execution results. The **STR** does, from the
+output of `tools/bind_test_results.py --junitxml … --apply`, which sets
+`status` and `executed_at` on the TC items.
 
-## Garde-fous
+## Guard rails
 
-- Ne jamais éditer `30_STD.md` à la main — le build écrase.
-- L'intro `test_plan_intro.md` est versionnée mais **maintenue à la
-  main** : aucun agent ne la modifie.
-- Si l'intro contient un `[TODO]`, il apparaît tel quel dans le STD —
-  c'est intentionnel (visibilité).
+- Never edit `30_STD.md` by hand.
+- Never write a run result, a date or a run id into a TC body.
+- Planned tests (`test_id: "[TODO]"`) are listed as planned, not
+  counted.
+- A system test that runs the benchmark or release gate has its own TC;
+  "System tests (3)" in the STP must name three.

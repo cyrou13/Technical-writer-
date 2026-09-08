@@ -1,5 +1,5 @@
 ---
-description: Met à jour la doc 62304 après évolution du code — détecte orphelins, items stale, gaps de couverture, puis re-traite uniquement le différentiel. Optionnel — passer un label `Vx.y` pour bump majeur global (ex. /doc-update V2.0).
+description: Updates the 62304 documentation after the code evolved — detects orphans, stale items and coverage gaps, re-processes only the delta, writes History (never Changelog), then reports the lint counts. Optional label `Vx.y` for a global major bump (e.g. /doc-update V2.0).
 ---
 
 ## OUTPUT LANGUAGE — STRICT
@@ -12,142 +12,128 @@ any global `CLAUDE.md` instruction. Conversational replies to the user
 MAY follow the user's language; written outputs are English-only. This
 applies to every sub-agent and skill invoked from this command.
 
-L'utilisateur veut **mettre à jour** la doc existante après évolution du
-code, PAS regénérer from scratch. Idempotent : si rien n'a changé, rien
-n'est modifié.
+The user wants to **update** the existing documentation after the code
+changed, not regenerate from scratch. Idempotent: nothing changed →
+nothing modified.
 
-Argument optionnel dans `$ARGUMENTS` :
-- `Vx.y` (ex. `V2.0`, `V1.5`) : bump majeur global. Tous les items
-  modifiés à l'étape 3 ou 4 voient leur `version` alignée sur ce label
-  (`x.y.0`), et tout `Approved` modifié repasse à `Draft` pour
-  re-approbation.
+Optional `$ARGUMENTS`: `Vx.y` (e.g. `V2.0`) — global major bump. Every
+item modified in steps 3 or 4 gets `version: x.y.0`, and every modified
+`Approved` item returns to `Draft`.
 
-## Étapes
+## Steps
 
-### 1. Cartographier (refresh)
+### 1. Map (refresh)
 
-Lancer le sub-agent `code-archeologist`. Il met à jour
-`docs/generated/_codemap.md` avec l'état actuel du repo.
+Run `code-archeologist` → `docs/generated/_codemap.md`.
 
-### 2. Diff (cadrage)
+### 2. Diff (framing)
 
-Lancer le sub-agent `doc-updater`. Il :
-- déprécie les orphelins (édition idempotente),
-- nettoie les orphelins partiels (édition idempotente),
-- liste les items stale et les gaps dans
-  `docs/generated/_update_diff.md`.
+Run `doc-updater`. It deprecates total orphans, cleans partial orphans
+(both through `## History`), renames any legacy `## Changelog` header it
+meets, and lists stale items and gaps in
+`docs/generated/_update_diff.md`.
 
-**Bloquant.** Lire le rapport. Si tout est vide → afficher "Doc déjà à
-jour" et sauter directement à l'étape 6 (build).
+**Blocking.** Read the report. Empty → say "Documentation already up to
+date" and jump to step 6.
 
-### 3. Re-traitement ciblé des writers
+### 3. Targeted re-processing
 
-Lancer **uniquement** les writers concernés par le diff (paralleliser
-ceux qui n'ont pas de dépendance entre eux) :
+Run **only** the writers the diff concerns (in parallel when
+independent):
 
-- Si gaps SRS ou stale SRS → `requirements-writer`.
-- Si gaps SDS ou stale SDS → `architecture-writer`.
-- Si gaps TC ou stale TC → `test-evidence-collector`.
-- Si **rien** dans une catégorie → ne pas lancer ce writer (gain de
-  temps).
+- SRS gaps or stale SRS → `requirements-writer`
+- SDS gaps or stale SDS → `architecture-writer` (also refreshes
+  `docs/ots.yaml` when a manifest changed)
+- TC gaps or stale TC → `test-evidence-collector`
 
-Les writers sont idempotents : ils re-lisent les items existants, ne
-modifient que ceux qui en ont besoin, créent les manquants.
+Order: `requirements-writer` first, then the two others in parallel. The
+writers are idempotent: they re-read, modify only what needs it, create
+what is missing, and rewrite normative sections **so that they read as
+the present** — every "was / is now" goes to `## History`. When a
+constant moved, the **owner** of the parameter changes its value and the
+referencing items are re-read, never redeclared; when a reference (hash,
+issue, competitor) is stripped, the whole parenthetical goes. A
+labeling-vs-specification contradiction a writer meets is reported as
+`DECISION`, never edited.
 
-Ordre :
-- `requirements-writer` d'abord (les autres lisent les SRS).
-- Puis `architecture-writer` + `test-evidence-collector` en parallèle.
+### 3b. Test results
 
-### 4. Re-évaluation des risques
+If the user provided a junit report, run `tools/bind_test_results.py
+--junitxml <file> --apply`; report the binder statuses including
+`passed_with_skips` / `passed_with_xfail` (never folded into passed) and
+the run metadata (software version + source, release-evidence mode,
+host, branch, dirty). TCs that changed status feed the anomalies
+appendix.
 
-Si **n'importe quel** item SRS / SDS / TC a été modifié à l'étape 3,
-lancer en séquence (chacun utilise les sorties du précédent pour ses
-liens) :
-1. **`risk-analyst`** — re-évalue les RSK safety
-2. **`security-analyst`** — re-évalue les THR cyber, peut trigger des
-   RSK
-3. **`usability-analyst`** — re-évalue les USC/URSK si des composants
-   UI ont changé, peut trigger des RSK
+### 4. Risk re-evaluation
 
-Chaque agent :
-- relit les items modifiés,
-- vérifie si les contrôles existants (`links.mitigates`) tiennent
-  toujours après les changements,
-- met à jour `residual_acceptable` si nécessaire,
-- ajoute un GAP marker (`[GAP-62304]` / `[GAP-CYBER]` / `[GAP-USE]`)
-  si un risque devient non-acceptable.
+If **any** SRS / SDS / TC changed in step 3, run in sequence
+`risk-analyst`, `security-analyst`, `usability-analyst` (the last only
+if UI components changed). A control whose bound TC turned `Failed` or
+`Unknown` is an unverified control: the residual argument is revisited. Each re-reads the modified items, checks
+that the existing controls (`links.mitigates`) still hold, updates the
+residual fields when needed, and records the re-assessment as **one
+dated line in `## History` of the risk item** — the normative sections
+are rewritten only when the assessment itself changed, and then undated.
+A risk that becomes non-acceptable gets its `[GAP-…]` marker in
+`## Open questions` and `## History`, never in the body.
 
-Si **rien** n'a bougé en SRS/SDS/TC → sauter cette étape.
-Si rien n'a bougé en composants UI → sauter `usability-analyst`
-spécifiquement.
+### 4bis. Coverage of the mitigation SRS (pass 2)
 
-### 4bis. Couverture des SRS de mitigation (passe 2)
+The analysts of step 4 may have created mitigation SRS (`SRS-MIT-*`,
+`SRS-CYB-*`, `SRS-PROD-*`, `SRS-USE-*`) with no SDS / TC. **If step 4
+created even one SRS**: re-run `architecture-writer` and
+`test-evidence-collector` in parallel. Idempotent — they only create
+the missing SDS / TC, or add `links.implements` / `links.verifies` (one
+History line) to existing items that already cover a mitigation SRS.
+No mitigation SRS created at step 4 → skip.
 
-Les analystes (étape 4) ont pu créer des SRS de mitigation
-(`SRS-MIT-*`, `SRS-CYB-*`, `SRS-PROD-*`, `SRS-USE-*`) qui n'avaient
-pas de SDS / TC associés. **Si l'étape 4 a créé ne serait-ce qu'un
-SRS** : relancer `architecture-writer` et `test-evidence-collector`
-en parallèle. Idempotents — ils ne créent que les SDS / TC manquants
-et ajoutent `links.implements` / `links.verifies` aux items existants
-quand un module / test couvre déjà un SRS de mitigation. Si aucun SRS
-de mitigation n'a été créé à l'étape 4 → sauter cette étape.
+### 5. Major bump (with `Vx.y`)
 
-### 5. Bump majeur (si argument `Vx.y`)
+For each item modified in steps 3 or 4:
 
-**Mode design.** Si `dt-config.yaml: versioning.mode` vaut `design`, sauter
-entièrement cette étape et ignorer un éventuel argument `Vx.y` : en phase
-design le store est une baseline unique (`baseline_version`), sans bump ni
-`## Changelog` (cf. skill `items-store`). Les writers des étapes 3–4 laissent
-`version` figé et n'ajoutent pas de changelog. Après l'étape 6, lancer
-`python tools/normalize_baseline.py` pour re-collapser toute dérive.
-
-En mode `maintenance` (défaut, après la première release) :
-
-Pour chaque item modifié aux étapes 3 ou 4, aligner la version sur le
-label demandé :
-
-- `version: x.y.0` (le label vient de l'argument).
-- Si l'item était `status: Approved` → repasser à `Draft`.
-- Ajouter une ligne au `## Changelog` du corps :
+- `version: x.y.0`;
+- `Approved` → `Draft`;
+- one line at the top of `## History` (create the section if absent;
+  never a `## Changelog`):
   ```markdown
-  - YYYY-MM-DD vx.y.0 : alignement majeur Vx.y — <résumé court du diff>
+  - YYYY-MM-DD vx.y.0 — aligned on Vx.y: <short summary of the change>
   ```
 
-Si pas d'argument `Vx.y`, les writers gèrent les bumps version à leur
-granularité naturelle (patch/minor selon les règles `items-store`).
+Without the argument, the writers bump at their natural granularity
+(`items-store` rules).
 
 ### 6. Build
 
-`python tools/build_docs.py`. Vérifier que tous les agrégats sont
-régénérés.
+`python tools/build_docs.py`. Check the aggregates are regenerated.
 
-### 7. Revue
+### 7. Review
 
-Lancer `compliance-reviewer`. Il écrit
-`docs/generated/99_compliance_review.md`.
+Run `compliance-reviewer` → `docs/generated/99_compliance_review.md`.
+Its first section is the release-gate offender list.
 
-### 8. Synthèse à l'utilisateur (≤ 16 lignes)
+### 8. Summary to the user (16 lines or fewer)
 
-- Items dépréciés (orphelins totaux) : N — listés.
-- Orphelins partiels nettoyés : N.
-- Items stale re-traités : N.
-- Gaps de couverture créés : N.
-- RSK / THR dont `residual_acceptable` a changé : N — alerter si > 0.
-- Métriques avant/après si possible (lire l'ancien `coverage.json` du
-  build précédent depuis git, comparer au nouveau).
-- Chemins des principaux livrables.
-- Si bump `Vx.y` appliqué : nombre d'items alignés.
+- Deprecated items (total orphans): N — listed.
+- Partial orphans cleaned: N. Changelog sections renamed: N.
+- Stale items re-processed: N. Coverage gaps created: N.
+- Risk items whose residual changed: N — alert if > 0.
+- Unresolved anomalies: N (known defects / xfail-skip TCs /
+  residual-false items / open actions).
+- **DECISION findings** (labeling vs specification): N — listed, for
+  the product owner / RAQA.
+- **Lint counts** from the review: offenders per rule (DC-*, TL-*,
+  SL-*), and whether a `--release` export would pass today.
+- Before / after coverage if the previous `coverage.json` is in git.
+- Paths of the main outputs.
+- If `Vx.y` applied: number of items aligned.
 
-## Garde-fous
+## Guard rails
 
-- **Idempotence stricte** : si le code n'a pas évolué, /doc-update
-  produit 0 modification d'item. Le rapport `_update_diff.md` contient
-  alors "Doc déjà à jour".
-- **Pas de suppression d'items.** Jamais. Toujours `Deprecated`.
-- Si `_codemap.md` n'est pas produit à l'étape 1 → arrêter.
-- Si le build échoue à l'étape 6 → afficher l'erreur Python, ne pas
-  masquer.
-- L'argument `Vx.y` ne touche QUE les items modifiés à cette passe — il
-  ne renumérote pas les items inchangés (qui gardent leur version).
-- Ne jamais commit/push (sauf demande explicite). Toute la sortie est
-  locale.
+- **Strict idempotence**: unchanged code → zero item modified.
+- **No deletion of items.** Ever. Always `Deprecated`.
+- **No date, decision or change note outside `## History`.**
+- If `_codemap.md` is not produced → stop.
+- Build failure → show the Python error, do not hide it.
+- The `Vx.y` label touches only the items modified in this pass.
+- Never commit or push unless asked.

@@ -1,6 +1,6 @@
 ---
 name: traceability-matrix
-description: Construire la matrice de traçabilité SRS ↔ SDS ↔ TC depuis les liens dans frontmatter des items, et calculer la couverture. À invoquer après que les items SRS/SDS/TC sont créés.
+description: Build the MAP ↔ SRS ↔ SDS ↔ TC traceability matrix from the frontmatter links and compute coverage, counting only tests that exist. Invoke after SRS/SDS/TC items are created.
 ---
 
 ## OUTPUT LANGUAGE — STRICT
@@ -10,70 +10,77 @@ Any traceability artifact produced while applying this skill
 written in **English**, regardless of the user's conversational
 language or any global `CLAUDE.md` instruction.
 
-# Matrice de traçabilité — construction et lecture
+# Traceability matrix — construction and reading
 
-## Source de vérité
+## Source of truth
 
-Les liens sont stockés **uniquement** dans `links:` du frontmatter de
-chaque item (cf. `items-store`). Ce skill ne modifie aucun lien — il
-**lit** et **agrège**.
+Links live **only** in the `links:` block of each item (skill
+`items-store`). This skill reads and aggregates; it never writes a link.
 
-## Logique d'agrégation
+## Aggregation
 
-Pour chaque `SRS-XYZ` :
+For each `SRS-XYZ`:
 
-- `implementedBy` = { SDS dont `links.implements` contient `SRS-XYZ` }
-- `verifiedBy` = { TC dont `links.verifies` contient `SRS-XYZ` }
+- `implementedBy` = { SDS whose `links.implements` contains `SRS-XYZ` }
+- `verifiedBy` = { TC whose `links.verifies` contains `SRS-XYZ` **and**
+  whose `test_id` resolves to an existing test (SL-4) }
+- `upstream` = `links.implements` of the SRS toward MAP items
 
-Métriques de couverture (Classe A — utiles, pas obligatoires) :
+Metrics (class A — useful, not mandatory):
 
-- `implementation_rate` = `#{SRS avec ≥1 implementedBy} / #SRS`
-- `verification_rate` = `#{SRS avec ≥1 verifiedBy} / #SRS`
-- `orphan_sds` = SDS sans `implements`
-- `orphan_tc` = TC sans `verifies`
-- `deprecated_links` = liens vers des items `Deprecated`
+- `implementation_rate` = #{SRS with ≥ 1 implementedBy} / #SRS
+- `verification_rate` = #{SRS with ≥ 1 verifiedBy} / #SRS
+- `planned_only` = SRS whose only TC are planned (`test_id: "[TODO]"`)
+  — reported separately, never folded into `verification_rate`
+- `orphan_sds`, `orphan_tc`, `unparented_srs` (no MAP upstream when MAP
+  items exist), `deprecated_links`
+- per `kind`: count of SRS and verification rate, so an empty kind
+  (no `performance` requirement, say) is visible
 
-## Sortie
+## Output
 
-`docs/generated/40_traceability.md` :
+`docs/generated/40_traceability.md`:
 
 ```markdown
-# Matrice de traçabilité
+# Traceability matrix
 
-## Synthèse
-| Métrique | Valeur |
+## Summary
+| Metric | Value |
 |---|---|
-| Exigences (SRS) | 42 |
-| Couverture implémentation | 38/42 (90%) |
-| Couverture vérification | 35/42 (83%) |
+| Requirements (SRS) | 42 |
+| Implementation coverage | 38/42 (90 %) |
+| Verification coverage (existing tests) | 33/42 (79 %) |
+| Verified by planned tests only | 2 |
 
-## SRS → SDS → TC
-| SRS | Titre | SDS | TC | Statut |
-|---|---|---|---|---|
-| SRS-AUTH-001 | OAuth2 login | SDS-AUTH-001 | TC-AUTH-001, TC-AUTH-002 | OK |
-| SRS-AUTH-002 | Logout | — | TC-AUTH-003 | ⚠ pas de SDS |
+## By requirement kind
+| kind | SRS | verified |
+|---|---|---|
 
-## Orphelins
-### SDS sans exigence
-- SDS-UTIL-007
+## MAP → SRS → SDS → TC
+| MAP | SRS | Title | kind | SDS | TC | Status |
+|---|---|---|---|---|---|---|
 
-### TC sans exigence
-- TC-MISC-002
+## Orphans
+### SDS without requirement
+### TC without requirement
+### SRS without upstream MAP
 ```
 
-`docs/generated/coverage.json` (machine-readable, pour CI) :
+`docs/generated/coverage.json` (machine-readable):
 
 ```json
 {
   "srs_count": 42,
   "implementation_rate": 0.90,
-  "verification_rate": 0.83,
-  "orphans": { "sds": ["SDS-UTIL-007"], "tc": ["TC-MISC-002"] }
+  "verification_rate": 0.79,
+  "planned_only": ["SRS-…"],
+  "by_kind": {"functional": {"count": 30, "verified": 26}},
+  "orphans": {"sds": [], "tc": [], "srs_unparented": []}
 }
 ```
 
-## Implémentation effective
+## Implementation
 
-C'est `tools/build_docs.py` qui calcule la matrice. Ce skill décrit la
-**spec** que le script doit respecter. Si tu modifies la matrice, modifie
-aussi le build pour qu'ils restent alignés.
+`tools/build_docs.py` computes the matrix for the working build; the
+reference exporters render the customer-facing matrix inside the SRS and
+STDR deliverables. If the matrix logic changes, change both.
