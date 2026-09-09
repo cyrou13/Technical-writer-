@@ -127,6 +127,15 @@ Absent → les blocs restent tels quels, une ligne INFO est loggée et l'export
 n'échoue pas. Un diagramme qui ne compile pas est laissé en bloc de code : il ne
 coûte pas les autres.
 
+### Découpage des tableaux larges
+
+L'inventaire OTS porte douze informations par composant : il est rendu en quatre
+tableaux (identification ; fonctions utilisées et vérification ; revue de risque ;
+fin de vie, SBOM et note), chacun rappelant le nom du composant. De même §3.5.1
+(items logiciels) est scindé en « quoi » et « où », et §3.8 sépare la valeur du
+paramètre de sa traçabilité. Règle : au-delà de cinq ou six colonnes sur A4
+portrait, découper — voir « Lisibilité des tableaux » dans le skill `srs-export`.
+
 ## Garde-fous
 
 - L'export **ne modifie aucun item** sous `docs/items/`. Lecture seule.

@@ -164,12 +164,39 @@ Largeur et centrage des tableaux ne peuvent pas venir du modèle :
 `_lib.finish_docx()` les fixe après pandoc (pleine largeur du texte, centré,
 lignes insécables). Tous les exporteurs l'appellent.
 
+### Lisibilité des tableaux
+
+Quatre règles, apprises sur le rendu LibreOffice du SDD :
+
+1. **Aucune colonne sous la largeur de son mot le plus long** — en-tête d'abord,
+   puis le mot le plus long du corps. Sinon Word coupe « Settable » en « Settab /
+   le » et un nom de composant en « typing_extens / ions ».
+2. **Remplissage par paliers, pas au prorata** — une colonne qui demande peu
+   (« # », « Int », « Value ») reçoit tout ce qu'elle demande, et les colonnes de
+   prose se partagent le reste au même niveau. Le prorata affame les colonnes
+   étroites au profit de la prose.
+3. **Le style de code ne fixe pas de taille** — pandoc épingle `VerbatimChar` à
+   11 pt, ce qui déborde une cellule en 9 pt ; `make_reference_docx.py` retire le
+   `w:sz` pour qu'il hérite du paragraphe. Une cellule de code demande tout de
+   même ~20 % de plus par caractère (Consolas).
+4. **Un tableau trop large se découpe, il ne se comprime pas** — au-delà de cinq
+   ou six colonnes sur A4 portrait, chaque ligne passe sur deux lignes. Découper
+   en deux ou trois tableaux thématiques, chacun rappelant la colonne-clé.
+
+Une ligne dont la plus longue cellule dépasse ~200 caractères redevient
+sécable : la garder entière laisse une page à moitié vide.
+
 ## §4.1 — paramètres sans provenance code
 
 La table des paramètres figés/bornés du SRS n'a pas de colonne « Source » (classe,
 module) : une spécification se rédige avant le code. La provenance reste dans
 `parameters[].source` du store et n'est rendue que dans le registre §3.8 du SDD
 (`render_parameters_table(..., with_source=False)` côté SRS).
+
+Le registre lui-même se limite à `Parameter | Value | Unit | Settable | Interval` ;
+l'item qui déclare le paramètre (et, côté SDD, la provenance code) part dans un
+second tableau. Avec un nom de paramètre de 30 caractères, six colonnes ne tiennent
+pas sur la largeur du texte.
 
 ## Lint `altitude` (export SRS, `--release`)
 
